@@ -11,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:postgres/postgres.dart';
 import 'api.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -40,7 +41,7 @@ class _CameraScreenState extends State<CameraScreen> {
     rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((json){
       api=CloudApi(json);
     });
-    _captureTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+    _captureTimer = Timer.periodic(Duration(minutes: 1), (timer) {
       _takePictureAndUpload();
     });
     _getDeviceInfo();
@@ -81,9 +82,15 @@ class _CameraScreenState extends State<CameraScreen> {
       _imgebytes =imageFile.readAsBytesSync();
       final fileName = picture.path.split('/').last;
 
+      final metadata = <String, String>{
+        'timestamp': DateTime.now().millisecondsSinceEpoch.toString(),
+        'device_info': _deviceInfo,
+        'location': _currentPosition?.toString() ?? '',
+      };
       // Upload the file to the bucket
-      final response= await api.save(fileName, _imgebytes);
+      final response= await api.save(fileName, _imgebytes,metadata);
       print(response.downloadLink);
+      print(metadata.toString());
 
       setState(() {
         _imagePaths.add(picture.path);
@@ -161,7 +168,30 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Error during download and upload: $e');
     }
   }
+Future<void> _postgraseconnection() async {
+  try {
+    final conn = await Connection.open(
+        Endpoint(
+            host: '34.71.87.187',
+            port:5432,
+            database: 'postgres',
+            username: 'postgres',
+            password: 'India@5555'
+        ),
+    settings : const ConnectionSettings(sslMode: SslMode.disable),
+    );
+    print("Connected successfully");
+    final result =await conn.execute('Select * from ai.datapipeline');
+    print(result.toString());
 
+  }
+  catch(e)
+  {
+    print(e);
+  }
+
+
+}
   @override
   Widget build(BuildContext context) {
     if (!_controller.value.isInitialized) {
@@ -181,7 +211,7 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Padding(
               padding: EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: _downloadAndUpload,
+                onPressed: _postgraseconnection,
                 child: Text('Download Excel & Upload to Drive'),
               ),
             ),

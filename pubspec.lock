@@ -512,6 +512,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
+  logging:
+    dependency: transitive
+    description:
+      name: logging
+      sha256: "623a88c9594aa774443aa3eb2d41807a48486b5613e67599fb4c41c0ad47c340"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   matcher:
     dependency: transitive
     description:
@@ -700,10 +708,18 @@ packages:
     dependency: "direct main"
     description:
       name: postgres
-      sha256: "0178bf02b520ad5d40ac9d83a77a337177b4a0b5599b3e0ed3c356f626457aaf"
+      sha256: f669831dd73e50978fa8ea9bd5023818deb03b5c932d1d694cd7434ecd9fde70
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.8"
+    version: "3.1.0"
+  postgresql2:
+    dependency: "direct main"
+    description:
+      name: postgresql2
+      sha256: b7596fffbec79207a16cdd4d080d5560cab7475de97a03cd1f02057110e8024d
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.5.1"
   retry:
     dependency: transitive
     description:
@@ -712,6 +728,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
+  rikulo_commons:
+    dependency: transitive
+    description:
+      name: rikulo_commons
+      sha256: "3208a504bf1e895ed634f19273c2d6d342d91978660def747f1dbb44f01543da"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.1+1"
   sasl_scram:
     dependency: transitive
     description:
