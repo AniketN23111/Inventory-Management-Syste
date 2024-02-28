@@ -33,6 +33,7 @@ class _CameraScreenState extends State<CameraScreen> {
   late String imagename;
   late Uint8List _imgebytes;
   late CloudApi api;
+  late final conn;
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _CameraScreenState extends State<CameraScreen> {
     });
     _getDeviceInfo();
     _getLocation();
+    _postgraseconnection();
   }
 
   Future<void> _initializeCamera() async {
@@ -170,7 +172,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 Future<void> _postgraseconnection() async {
   try {
-    final conn = await Connection.open(
+     conn = await Connection.open(
         Endpoint(
             host: '34.71.87.187',
             port:5432,
@@ -181,13 +183,14 @@ Future<void> _postgraseconnection() async {
     settings : const ConnectionSettings(sslMode: SslMode.disable),
     );
     print("Connected successfully");
-    final result =await conn.execute('Select * from ai.datapipeline');
-    print(result.toString());
-
   }
   catch(e)
   {
     print(e);
+  }
+  void excuteQuery(){
+    final result = conn.execute('Select * from im.imaged');
+    print(result.toString());
   }
 
 
@@ -211,7 +214,7 @@ Future<void> _postgraseconnection() async {
             child: Padding(
               padding: EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: _postgraseconnection,
+                onPressed: _downloadAndUpload,
                 child: Text('Download Excel & Upload to Drive'),
               ),
             ),
