@@ -23,7 +23,7 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  late CameraController _controller;
+  CameraController? _controller;
   late List<CameraDescription> _cameras;
   late CameraDescription _selectedCamera;
   List<String> _imagePaths = [];
@@ -36,12 +36,12 @@ class _CameraScreenState extends State<CameraScreen> {
   late Uint8List _imgebytes;
   late CloudApi api;
   late Connection? conn;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    print(widget.deviceName);
-    _initializeCamera();
+      _initializeCamera();
     rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((json){
       api=CloudApi(json);
     });
@@ -75,7 +75,7 @@ class _CameraScreenState extends State<CameraScreen> {
     if (_cameras.isNotEmpty) {
       _selectedCamera = _cameras.first;
       _controller = CameraController(_selectedCamera, ResolutionPreset.medium, enableAudio: false);
-      _controller.initialize().then((_) {
+      _controller?.initialize().then((_) {
         if (!mounted) {
           return;
         }
@@ -84,16 +84,6 @@ class _CameraScreenState extends State<CameraScreen> {
     } else {
       print('No camera available');
     }
-  }
-  Future<void> _selectquery () async {
-  try{
-  final result= await conn?.execute('select * from ai.image_store;');
-  print(result);
-  displayStatistics();
-}
-catch(e) {
-  print(e);
-  }
   }
   Future<void> _insertDataIntoPostgreSQL(String imageUrl, DateTime timestamp, String location, String deviceInfo) async {
     try {
@@ -115,12 +105,12 @@ catch(e) {
     final String dirPath = '${extDir.path}/Pictures/flutter_app';
     await Directory(dirPath).create(recursive: true);
 
-    if (_controller.value.isTakingPicture) {
+    if (_controller!.value.isTakingPicture) {
       return null;
     }
 
     try {
-      XFile picture = await _controller.takePicture();
+      XFile picture = await _controller!.takePicture();
       final File imageFile = File(picture.path);
       _imgebytes =imageFile.readAsBytesSync();
       final fileName = picture.path.split('/').last;
@@ -135,7 +125,7 @@ catch(e) {
       print(response.downloadLink);
       print(metadata.toString());
 
-      await _insertDataIntoPostgreSQL(response.downloadLink.toString(), DateTime.now(), _currentPosition?.toString() ?? '', _deviceInfo);
+      //await _insertDataIntoPostgreSQL(response.downloadLink.toString(), DateTime.now(), _currentPosition?.toString() ?? '', _deviceInfo);
 
       setState(() {
         _imagePaths.add(picture.path);
@@ -213,10 +203,9 @@ catch(e) {
     }
   }
 
-  Future<Map<String, dynamic>> getPhotoCountsByDevice() async {
+  Future<Map<String, int>> getPhotoCountsByDevice() async {
     try {
       final results = await conn?.execute('SELECT devicename, COUNT(*) FROM ai.image_store GROUP BY devicename');
-      // Convert the results to a map for easier access
       Map<String, int> photoCountsByDevice = {};
       for (final row in results ?? []) {
         photoCountsByDevice[row[0]] = row[1];
@@ -228,10 +217,9 @@ catch(e) {
     }
   }
 
-  Future<Map<String, dynamic>> getPhotoCountsByDate() async {
+  Future<Map<String, int>> getPhotoCountsByDate() async {
     try {
       final results = await conn?.execute('SELECT DATE(capturetime), COUNT(*) FROM ai.image_store GROUP BY DATE(capturetime)');
-      // Convert the results to a map for easier access
       Map<String, int> photoCountsByDate = {};
       for (final row in results ?? []) {
         photoCountsByDate[row[0]] = row[1];
@@ -242,47 +230,98 @@ catch(e) {
       return {};
     }
   }
-  void displayStatistics() async {
-    final deviceStats = await getPhotoCountsByDevice();
-    final dateStats = await getPhotoCountsByDate();
 
-    print('Photo counts by device:');
-    deviceStats.forEach((device, count) {
-      print('$device: $count photos');
-    });
+  Future<void> displayStatistics() async {
+    try {
+      final deviceStats = await getPhotoCountsByDevice();
+      final dateStats = await getPhotoCountsByDate();
 
-    print('\nPhoto counts by date:');
-    dateStats.forEach((date, count) {
-      print('$date: $count photos');
-    });
+      // Calculate total number of photos
+      int totalPhotos = deviceStats.values.fold(0, (sum, count) => sum + count);
 
+      print('Total number of photos: $totalPhotos');
+
+      print('\nPhoto counts by device:');
+      deviceStats.forEach((device, count) {
+        print('$device: $count photos');
+      });
+
+      print('\nPhoto counts by date:');
+      dateStats.forEach((date, count) {
+        print('$date: $count photos');
+      });
+    } catch (e) {
+      print('Error fetching and displaying inventory statistics: $e');
+    }
+  }
+
+  Future<void> _selectquery() async {
+    try {
+      final results = await conn?.execute('SELECT * FROM ai.image_store WHERE devicename LIKE \$1',
+          parameters: ['%$_searchQuery%',] // Search for device names containing the search query
+      );
+      print(results);
+      displayStatistics();
+    } catch (e) {
+      print(e);
+    }
+    displayStatistics();
+  }
+  List<String> _filteredImages() {
+    if (_searchQuery.isEmpty) {
+      return _imagePaths;
+    } else {
+      return _imagePaths.where((path) => path.contains(_searchQuery)).toList();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_controller.value.isInitialized) {
-      return Container();
+    if (_controller == null || !_controller!.value.isInitialized) {
+      return Container(); // Return a placeholder widget if the camera is not initialized
     }
     return Scaffold(
       appBar: AppBar(title: Text('Auto Capture')),
       body: CustomScrollView(
         slivers: <Widget>[
           SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: TextField(
+                decoration: InputDecoration(
+                  labelText: 'Search by device name',
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.clear),
+                    onPressed: () {
+                      setState(() {
+                        _selectquery();
+                      });
+                    },
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
             child: Container(
               height: 500, // Adjust the height as needed
-              child: CameraPreview(_controller),
+              child: CameraPreview(_controller!),
             ),
           ),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: _selectquery,
+                onPressed: _downloadAndUpload,
                 child: Text('Download Excel & Upload to Drive'),
               ),
             ),
           ),
-
           SliverList(
             delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
@@ -298,23 +337,23 @@ catch(e) {
           SliverList(
             delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
-                return _imagePaths.isNotEmpty
+                final filteredPaths = _filteredImages();
+                return filteredPaths.isNotEmpty
                     ? Container(
                   height: 100.0,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: _imagePaths.length,
+                    itemCount: filteredPaths.length,
                     itemBuilder: (context, index) {
+                      final imagePath = filteredPaths[index];
                       return Container(
                         margin: EdgeInsets.all(4.0),
-                        child: Image.file(File(_imagePaths[index]), height: 80.0),
+                        child: Image.file(File(imagePath), height: 80.0),
                       );
                     },
                   ),
                 )
-
                     : Container();
-
               },
               childCount: 1,
             ),
@@ -327,7 +366,7 @@ catch(e) {
   @override
   void dispose() {
     _captureTimer.cancel();
-    _controller.dispose();
+    _controller!.dispose();
     super.dispose();
   }
 }
