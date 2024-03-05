@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_store/User_Authetication/RegistrationForm.dart';
 import 'CameraScreen.dart';
 import 'User_Authetication/login_page.dart';
 
@@ -12,7 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: CameraScreen(),
+      home: LoginPage(),
     );
   }
 }

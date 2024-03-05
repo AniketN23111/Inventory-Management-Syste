@@ -15,7 +15,9 @@ import 'package:postgres/postgres.dart';
 import 'api.dart';
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({Key? key}) : super(key: key);
+  final String deviceName; // Accept device name as a parameter
+
+  const CameraScreen({Key? key, required this.deviceName}) : super(key: key);
   @override
   _CameraScreenState createState() => _CameraScreenState();
 }
@@ -28,28 +30,46 @@ class _CameraScreenState extends State<CameraScreen> {
   String? _latestImagePath;
   late DateTime? _latestImageTimestamp;
   late Timer _captureTimer;
-  late String _deviceInfo;
+  late String _deviceInfo=widget.deviceName.toString();
   Position? _currentPosition;
   late String imagename;
   late Uint8List _imgebytes;
   late CloudApi api;
-  late final conn;
+  late Connection? conn;
 
   @override
   void initState() {
     super.initState();
+    print(widget.deviceName);
     _initializeCamera();
     rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((json){
       api=CloudApi(json);
     });
-    _captureTimer = Timer.periodic(Duration(minutes: 1), (timer) {
+    _captureTimer = Timer.periodic(Duration(seconds: 10), (timer) {
       _takePictureAndUpload();
     });
-    _getDeviceInfo();
     _getLocation();
     _postgraseconnection();
   }
-
+  Future<void> _postgraseconnection() async {
+    try {
+       conn = await Connection.open(
+        Endpoint(
+            host: '34.71.87.187',
+            port:5432,
+            database: 'airegulation_dev',
+            username: 'postgres',
+            password: 'India@5555'
+        ),
+        settings : const ConnectionSettings(sslMode: SslMode.disable),
+      );
+      print("Connected successfully");
+    }
+    catch(e)
+    {
+      print(e);
+    }
+  }
   Future<void> _initializeCamera() async {
     _cameras = await availableCameras();
     if (_cameras.isNotEmpty) {
@@ -63,6 +83,27 @@ class _CameraScreenState extends State<CameraScreen> {
       });
     } else {
       print('No camera available');
+    }
+  }
+  Future<void> _selectquery () async {
+  try{
+  final result= await conn?.execute('select * from ai.image_store;');
+  print(result);
+  displayStatistics();
+}
+catch(e) {
+  print(e);
+  }
+  }
+  Future<void> _insertDataIntoPostgreSQL(String imageUrl, DateTime timestamp, String location, String deviceInfo) async {
+    try {
+      // Execute an insert query to insert data into PostgreSQL table
+      await conn?.execute('INSERT INTO ai.image_store (image_url, capturetime, location, devicename)VALUES (\$1, \$2, \$3, \$4)',
+          parameters: [imageUrl, timestamp, location, deviceInfo]);
+
+      print('Data inserted into PostgreSQL successfully');
+    } catch (e) {
+      print('Error inserting data into PostgreSQL: $e');
     }
   }
   Future<Map<String, dynamic>> loadServiceAccountJson() async {
@@ -86,13 +127,15 @@ class _CameraScreenState extends State<CameraScreen> {
 
       final metadata = <String, String>{
         'timestamp': DateTime.now().millisecondsSinceEpoch.toString(),
-        'device_info': _deviceInfo,
+        'device_info': widget.deviceName,
         'location': _currentPosition?.toString() ?? '',
       };
       // Upload the file to the bucket
       final response= await api.save(fileName, _imgebytes,metadata);
       print(response.downloadLink);
       print(metadata.toString());
+
+      await _insertDataIntoPostgreSQL(response.downloadLink.toString(), DateTime.now(), _currentPosition?.toString() ?? '', _deviceInfo);
 
       setState(() {
         _imagePaths.add(picture.path);
@@ -105,7 +148,7 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _getDeviceInfo() async {
+ /* Future<void> _getDeviceInfo() async {
     DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
     if (Platform.isAndroid) {
       AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
@@ -118,7 +161,7 @@ class _CameraScreenState extends State<CameraScreen> {
         _deviceInfo = 'iOS - ${iosInfo.model}';
       });
     }
-  }
+  }*/
 
   Future<void> _getLocation() async {
     try {
@@ -170,31 +213,52 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Error during download and upload: $e');
     }
   }
-Future<void> _postgraseconnection() async {
-  try {
-     conn = await Connection.open(
-        Endpoint(
-            host: '34.71.87.187',
-            port:5432,
-            database: 'postgres',
-            username: 'postgres',
-            password: 'India@5555'
-        ),
-    settings : const ConnectionSettings(sslMode: SslMode.disable),
-    );
-    print("Connected successfully");
-  }
-  catch(e)
-  {
-    print(e);
-  }
-  void excuteQuery(){
-    final result = conn.execute('Select * from im.imaged');
-    print(result.toString());
+
+  Future<Map<String, dynamic>> getPhotoCountsByDevice() async {
+    try {
+      final results = await conn?.execute('SELECT devicename, COUNT(*) FROM ai.image_store GROUP BY devicename');
+      // Convert the results to a map for easier access
+      Map<String, int> photoCountsByDevice = {};
+      for (final row in results ?? []) {
+        photoCountsByDevice[row[0]] = row[1];
+      }
+      return photoCountsByDevice;
+    } catch (e) {
+      print('Error fetching photo counts by device: $e');
+      return {};
+    }
   }
 
+  Future<Map<String, dynamic>> getPhotoCountsByDate() async {
+    try {
+      final results = await conn?.execute('SELECT DATE(capturetime), COUNT(*) FROM ai.image_store GROUP BY DATE(capturetime)');
+      // Convert the results to a map for easier access
+      Map<String, int> photoCountsByDate = {};
+      for (final row in results ?? []) {
+        photoCountsByDate[row[0]] = row[1];
+      }
+      return photoCountsByDate;
+    } catch (e) {
+      print('Error fetching photo counts by date: $e');
+      return {};
+    }
+  }
+  void displayStatistics() async {
+    final deviceStats = await getPhotoCountsByDevice();
+    final dateStats = await getPhotoCountsByDate();
 
-}
+    print('Photo counts by device:');
+    deviceStats.forEach((device, count) {
+      print('$device: $count photos');
+    });
+
+    print('\nPhoto counts by date:');
+    dateStats.forEach((date, count) {
+      print('$date: $count photos');
+    });
+
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_controller.value.isInitialized) {
@@ -214,11 +278,12 @@ Future<void> _postgraseconnection() async {
             child: Padding(
               padding: EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: _downloadAndUpload,
+                onPressed: _selectquery,
                 child: Text('Download Excel & Upload to Drive'),
               ),
             ),
           ),
+
           SliverList(
             delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
@@ -248,7 +313,9 @@ Future<void> _postgraseconnection() async {
                     },
                   ),
                 )
+
                     : Container();
+
               },
               childCount: 1,
             ),

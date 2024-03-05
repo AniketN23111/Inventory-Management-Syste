@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_store/User_Authetication/RegistrationPage.dart';
-import 'add_device_page.dart'; // Import the page to navigate to after login
+import 'package:image_store/User_Authetication/RegistrationForm.dart';
+import 'package:postgres/postgres.dart';
+import 'choosecamerapage.dart'; // Import the page to navigate to after login
 
 class LoginPage extends StatelessWidget {
   @override
@@ -22,8 +22,45 @@ class LoginForm extends StatefulWidget {
 
 class _LoginFormState extends State<LoginForm> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  // Variable to hold user data
+  List<List<dynamic>>? userData;
+
+  Future<void> _login() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        // Fetch user credentials from PostgreSQL
+        final isValid = await fetchUserCredentials(
+          _usernameController.text.toString(),
+          _passwordController.text.toString(),
+        );
+
+        if (isValid) {
+          // Fetch user data after successful login
+          userData = await fetchUserData(_usernameController.text.toString());
+
+          // Navigate to the page where the user can choose a camera
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => ChooseCameraPage(userData!)),
+          );
+        } else {
+          // Show error message for invalid credentials
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Invalid username or password')),
+          );
+        }
+      } catch (e) {
+        // Handle errors
+        print('Login failed: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed. Please try again.')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,11 +72,11 @@ class _LoginFormState extends State<LoginForm> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             TextFormField(
-              controller: _emailController,
-              decoration: InputDecoration(labelText: 'Email'),
+              controller: _usernameController,
+              decoration: InputDecoration(labelText: 'Username'),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter your email';
+                  return 'Please enter your username';
                 }
                 return null;
               },
@@ -57,35 +94,13 @@ class _LoginFormState extends State<LoginForm> {
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  try {
-                    // Authenticate user with email and password
-                    await FirebaseAuth.instance.signInWithEmailAndPassword(
-                      email: _emailController.text,
-                      password: _passwordController.text,
-                    );
-                    // Navigate to the next screen upon successful login
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => AddDevicePage()),
-                    );
-                  } catch (e) {
-                    // Handle authentication errors (e.g., invalid credentials)
-                    print('Login failed: $e');
-                    // Show error message to the user
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Login failed. Please try again.')),
-                    );
-                  }
-                }
-              },
+              onPressed: _login, // Call _login method when the button is pressed
               child: Text('Login'),
             ),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context)=>RegistrationPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationForm()));
               },
               child: Text('Register'),
             ),
@@ -97,8 +112,62 @@ class _LoginFormState extends State<LoginForm> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Method to fetch user credentials from PostgreSQL
+  Future<bool> fetchUserCredentials(String username, String password) async {
+    try {
+      final connection = await Connection.open(
+        Endpoint(
+          host: '34.71.87.187',
+          port: 5432,
+          database: 'airegulation_dev',
+          username: 'postgres',
+          password: 'India@5555',
+        ),
+        settings: const ConnectionSettings(sslMode: SslMode.disable),
+      );
+
+      final result = await connection.execute(
+        'SELECT * FROM ai.image_user WHERE username = \$1 AND password = \$2',
+        parameters: [username, password],
+      );
+
+      await connection.close();
+      return result.isNotEmpty;
+    } catch (e) {
+      print('Error fetching user credentials: $e');
+      return false;
+    }
+  }
+
+  // Method to fetch user data from PostgreSQL
+  Future<List<List<dynamic>>> fetchUserData(String username) async {
+    try {
+      final connection = await Connection.open(
+        Endpoint(
+          host: '34.71.87.187',
+          port: 5432,
+          database: 'airegulation_dev',
+          username: 'postgres',
+          password: 'India@5555',
+        ),
+        settings: const ConnectionSettings(sslMode: SslMode.disable),
+      );
+
+      final result = await connection.execute(
+        'SELECT * FROM ai.image_user WHERE username = \$1',
+        parameters: [username],
+      );
+
+      await connection.close();
+      return result;
+    } catch (e) {
+      print('Error fetching user data: $e');
+      return [];
+    }
   }
 }
