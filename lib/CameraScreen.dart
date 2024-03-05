@@ -192,7 +192,6 @@ catch(e) {
         sheet.getRangeByIndex(i + 2, 4).setText(_currentPosition?.toString() ?? ''); // Location in column C
         // File Name in column D
       }
-
       final List<int> bytes = workbook.saveAsStream();
       workbook.dispose();
 
