@@ -12,6 +12,7 @@ import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:postgres/postgres.dart';
+import 'package:collection/collection.dart';
 
 class CameraScreen extends StatefulWidget {
   final String deviceName; // Accept device name as a parameter
@@ -107,7 +108,7 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
       XFile picture = await _controller!.takePicture();
       final File imageFile = File(picture.path);
-      _imgebytes =imageFile.readAsBytesSync();
+      _imgebytes = imageFile.readAsBytesSync();
       final fileName = picture.path.split('/').last;
       final metadata = <String, String>{
         'timestamp': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -115,7 +116,7 @@ class _CameraScreenState extends State<CameraScreen> {
         'location': _currentPosition?.toString() ?? '',
       };
       // Upload the file to the bucket
-      final response= await api.save(fileName, _imgebytes,metadata);
+      final response = await api.save(fileName, _imgebytes, metadata);
       print(response.downloadLink);
       print(metadata.toString());
 
@@ -123,10 +124,43 @@ class _CameraScreenState extends State<CameraScreen> {
       final inputImage = InputImage.fromFile(imageFile);
       final recognizedText = await textRecognizer.processImage(inputImage);
       final extractedText = recognizedText.text;
+      final latestCaptureResult = await conn?.execute(
+          'SELECT image_url, capturetime, location, devicename, groupid, extracted_text, username FROM ai.image_store ORDER BY capturetime DESC LIMIT 1');
+
+      print(latestCaptureResult);
+
+      if (latestCaptureResult != null && latestCaptureResult.isNotEmpty) {
+        final latestCapture = latestCaptureResult[0];
+        try {
+          final DateTime latestCaptureTime = DateTime.parse(latestCapture[1] as String);
+          final String latestGroupId = latestCapture[4] as String;
+
+          final currentTime = DateTime.now();
+          final timeDifference = currentTime.difference(latestCaptureTime).inSeconds;
+
+          if (timeDifference <= 5) {
+            // Reuse the group ID if the time difference is within 5 seconds
+            _groupId = latestGroupId;
+          } else {
+            // Generate a new group ID
+            _groupId = generateGroupId();
+          }
+        } catch (e) {
+          print('Error parsing data: $e');
+          // Handle the error here, such as skipping this data and moving forward
+          // You can choose to log the error, skip this data, or take any other appropriate action
+          // For example, you can generate a new group ID and continue
+          _groupId = generateGroupId();
+        }
+      } else {
+        // No previous captures found, generate a new group ID
+        _groupId = generateGroupId();
+      }
+print(_groupId);
 
       // Store username and image details in the database
       await _insertDataIntoPostgreSQL(
-          response.downloadLink.toString(), DateTime.now(), _currentPosition?.toString() ?? '', widget.deviceName,_groupId, extractedText,widget.username);
+          response.downloadLink.toString(), DateTime.now().toString(), _currentPosition?.toString() ?? '', widget.deviceName, _groupId, extractedText, widget.username);
 
       setState(() {
         _imagePaths.add(picture.path);
@@ -134,14 +168,13 @@ class _CameraScreenState extends State<CameraScreen> {
         _latestImageTimestamp = DateTime.now();
         _detectedText = extractedText;
       });
-
     } catch (e) {
       print(e);
     }
   }
 
 
-  Future<void> _insertDataIntoPostgreSQL(String imageUrl, DateTime timestamp, String location, String deviceInfo,String groupid,String extractedText,String username) async {
+  Future<void> _insertDataIntoPostgreSQL(String imageUrl, String timestamp, String location, String deviceInfo,String groupid,String extractedText,String username) async {
     try {
       // Execute an insert query to insert data into PostgreSQL table
       await conn?.execute('INSERT INTO ai.image_store (image_url, capturetime, location, devicename,groupid,extracted_text,username)VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7)',
@@ -246,23 +279,32 @@ class _CameraScreenState extends State<CameraScreen> {
         print('$device: $count photos');
       });
 
-      print('\nPhoto counts by date:');
-      dateStats.forEach((date, count) {
-        print('$date: $count photos');
-      });
     } catch (e) {
       print('Error fetching and displaying inventory statistics: $e');
     }
   }
 
   Future<void> _selectquery() async {
-    try {
-      final results = await conn?.execute('SELECT extracted_text FROM ai.image_store');// Search for device names containing the search query
-      print(results);
-      displayStatistics();
-    } catch (e) {
-      print(e);
-    }
+        try {
+          final results = await conn?.execute(
+              'SELECT groupid, capturetime, extracted_text FROM ai.image_store'
+          );
+
+          // Group results by group ID
+          final groupedResults = groupBy(results ?? [], (result) => result[0]);
+
+          // Print extracted text for each group
+          groupedResults.forEach((groupId, groupResults) {
+            print('Group ID: $groupId');
+            groupResults.forEach((result) {
+              final captureTime = result[1];
+              final extractedText = result[2];
+              print('  Capture Time: $captureTime, Extracted Text: $extractedText');
+            });
+          });
+        } catch (e) {
+          print('Error executing query: $e');
+        }
     displayStatistics();
   }
   List<String> _filteredImages() {
