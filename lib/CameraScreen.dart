@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_store/api.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,6 +14,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:postgres/postgres.dart';
 import 'api.dart';
+import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
 
 class CameraScreen extends StatefulWidget {
   final String deviceName; // Accept device name as a parameter
@@ -37,7 +39,8 @@ class _CameraScreenState extends State<CameraScreen> {
   late CloudApi api;
   late Connection? conn;
   String _searchQuery = '';
-
+  String _detectedText = '';
+  final tessractOcr= FlutterTesseractOcr();
   @override
   void initState() {
     super.initState();
@@ -114,7 +117,6 @@ class _CameraScreenState extends State<CameraScreen> {
       final File imageFile = File(picture.path);
       _imgebytes =imageFile.readAsBytesSync();
       final fileName = picture.path.split('/').last;
-
       final metadata = <String, String>{
         'timestamp': DateTime.now().millisecondsSinceEpoch.toString(),
         'device_info': widget.deviceName,
@@ -125,33 +127,27 @@ class _CameraScreenState extends State<CameraScreen> {
       print(response.downloadLink);
       print(metadata.toString());
 
+      //final extractedText = await FlutterTesseractOcr.extractText(imageFile.path, language: 'eng');
+      final textRecongor = TextRecognizer();
+      final inpuImage=InputImage.fromFile(imageFile);
+      final reText = await textRecongor.processImage(inpuImage);
+      print(reText);
+      //print('Extracted text: $extractedText');
+
       //await _insertDataIntoPostgreSQL(response.downloadLink.toString(), DateTime.now(), _currentPosition?.toString() ?? '', _deviceInfo);
 
       setState(() {
         _imagePaths.add(picture.path);
         _latestImagePath = picture.path;
         _latestImageTimestamp = DateTime.now();
+        _detectedText = reText.text;
       });
 
     } catch (e) {
       print(e);
     }
   }
-
- /* Future<void> _getDeviceInfo() async {
-    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-    if (Platform.isAndroid) {
-      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      setState(() {
-        _deviceInfo = 'Android - ${androidInfo.model}';
-      });
-    } else if (Platform.isIOS) {
-      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-      setState(() {
-        _deviceInfo = 'iOS - ${iosInfo.model}';
-      });
-    }
-  }*/
+  
 
   Future<void> _getLocation() async {
     try {
@@ -282,83 +278,91 @@ class _CameraScreenState extends State<CameraScreen> {
     }
     return Scaffold(
       appBar: AppBar(title: Text('Auto Capture')),
-      body: CustomScrollView(
-        slivers: <Widget>[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: TextField(
-                decoration: InputDecoration(
-                  labelText: 'Search by device name',
-                  suffixIcon: IconButton(
-                    icon: Icon(Icons.clear),
-                    onPressed: () {
-                      setState(() {
-                        _selectquery();
-                      });
-                    },
+      body: Container(
+        child: CustomScrollView(
+          slivers: <Widget>[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Search by device name',
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _selectquery();
+                        });
+                      },
+                    ),
                   ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.toLowerCase();
+                    });
+                  },
                 ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value.toLowerCase();
-                  });
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Container(
+                height: 500, // Adjust the height as needed
+                child: CameraPreview(_controller!),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: ElevatedButton(
+                  onPressed: _downloadAndUpload,
+                  child: Text('Download Excel & Upload to Drive'),
+                ),
+              ),
+            ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                  return _latestImagePath != null
+                      ? Container(
+                    padding: EdgeInsets.all(16.0),
+                  )
+                      : Container();
                 },
+                childCount: 1,
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Container(
-              height: 500, // Adjust the height as needed
-              child: CameraPreview(_controller!),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: _downloadAndUpload,
-                child: Text('Download Excel & Upload to Drive'),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                  final filteredPaths = _filteredImages();
+                  return filteredPaths.isNotEmpty
+                      ? Container(
+                    height: 100.0,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: filteredPaths.length,
+                      itemBuilder: (context, index) {
+                        final imagePath = filteredPaths[index];
+                        return Container(
+                          margin: EdgeInsets.all(4.0),
+                          child: Image.file(File(imagePath), height: 80.0),
+                        );
+                      },
+                    ),
+                  )
+                      : Container();
+                },
+                childCount: 1,
               ),
             ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                return _latestImagePath != null
-                    ? Container(
-                  padding: EdgeInsets.all(16.0),
-                )
-                    : Container();
-              },
-              childCount: 1,
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Detected Text: $_detectedText'),
+              ),
             ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                final filteredPaths = _filteredImages();
-                return filteredPaths.isNotEmpty
-                    ? Container(
-                  height: 100.0,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: filteredPaths.length,
-                    itemBuilder: (context, index) {
-                      final imagePath = filteredPaths[index];
-                      return Container(
-                        margin: EdgeInsets.all(4.0),
-                        child: Image.file(File(imagePath), height: 80.0),
-                      );
-                    },
-                  ),
-                )
-                    : Container();
-              },
-              childCount: 1,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
