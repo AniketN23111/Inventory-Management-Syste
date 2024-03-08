@@ -44,7 +44,7 @@ class _LoginFormState extends State<LoginForm> {
           // Navigate to the page where the user can choose a camera
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => ChooseCameraPage(userData!)),
+            MaterialPageRoute(builder: (context) => ChooseCameraPage(userData!,_usernameController.text.toString())),
           );
         } else {
           // Show error message for invalid credentials

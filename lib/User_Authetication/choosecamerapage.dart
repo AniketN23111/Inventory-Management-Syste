@@ -4,8 +4,9 @@ import '../CameraScreen.dart';
 
 class ChooseCameraPage extends StatelessWidget {
   final List<List<dynamic>> userData;
+  final String username;
 
-  ChooseCameraPage(this.userData);
+  ChooseCameraPage(this.userData,this.username);
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +38,7 @@ class ChooseCameraPage extends StatelessWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => CameraScreen(deviceName: userData[0][index + 1])),
+                      MaterialPageRoute(builder: (context) => CameraScreen(deviceName: userData[0][index + 1],username: username,)),
                     );
                   },
                 );

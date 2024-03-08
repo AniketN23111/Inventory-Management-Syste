@@ -7,19 +7,16 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:image_store/api.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:device_info/device_info.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:postgres/postgres.dart';
-import 'api.dart';
-import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
 
 class CameraScreen extends StatefulWidget {
   final String deviceName; // Accept device name as a parameter
-
-  const CameraScreen({Key? key, required this.deviceName}) : super(key: key);
+  final String username;
+  const CameraScreen({Key? key, required this.deviceName,required this.username}) : super(key: key);
   @override
   _CameraScreenState createState() => _CameraScreenState();
 }
@@ -40,11 +37,12 @@ class _CameraScreenState extends State<CameraScreen> {
   late Connection? conn;
   String _searchQuery = '';
   String _detectedText = '';
-  final tessractOcr= FlutterTesseractOcr();
+  late String _groupId;
   @override
   void initState() {
     super.initState();
       _initializeCamera();
+    _groupId = '';
     rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((json){
       api=CloudApi(json);
     });
@@ -67,11 +65,16 @@ class _CameraScreenState extends State<CameraScreen> {
         settings : const ConnectionSettings(sslMode: SslMode.disable),
       );
       print("Connected successfully");
+      print(widget.username);
     }
     catch(e)
     {
       print(e);
     }
+  }
+  String generateGroupId() {
+    // Generate group id based on device name and timestamp
+    return '${widget.username}_${DateTime.now().millisecondsSinceEpoch}';
   }
   Future<void> _initializeCamera() async {
     _cameras = await availableCameras();
@@ -86,17 +89,6 @@ class _CameraScreenState extends State<CameraScreen> {
       });
     } else {
       print('No camera available');
-    }
-  }
-  Future<void> _insertDataIntoPostgreSQL(String imageUrl, DateTime timestamp, String location, String deviceInfo) async {
-    try {
-      // Execute an insert query to insert data into PostgreSQL table
-      await conn?.execute('INSERT INTO ai.image_store (image_url, capturetime, location, devicename)VALUES (\$1, \$2, \$3, \$4)',
-          parameters: [imageUrl, timestamp, location, deviceInfo]);
-
-      print('Data inserted into PostgreSQL successfully');
-    } catch (e) {
-      print('Error inserting data into PostgreSQL: $e');
     }
   }
   Future<Map<String, dynamic>> loadServiceAccountJson() async {
@@ -127,27 +119,39 @@ class _CameraScreenState extends State<CameraScreen> {
       print(response.downloadLink);
       print(metadata.toString());
 
-      //final extractedText = await FlutterTesseractOcr.extractText(imageFile.path, language: 'eng');
-      final textRecongor = TextRecognizer();
-      final inpuImage=InputImage.fromFile(imageFile);
-      final reText = await textRecongor.processImage(inpuImage);
-      print(reText);
-      //print('Extracted text: $extractedText');
+      final textRecognizer = TextRecognizer();
+      final inputImage = InputImage.fromFile(imageFile);
+      final recognizedText = await textRecognizer.processImage(inputImage);
+      final extractedText = recognizedText.text;
 
-      //await _insertDataIntoPostgreSQL(response.downloadLink.toString(), DateTime.now(), _currentPosition?.toString() ?? '', _deviceInfo);
+      // Store username and image details in the database
+      await _insertDataIntoPostgreSQL(
+          response.downloadLink.toString(), DateTime.now(), _currentPosition?.toString() ?? '', widget.deviceName,_groupId, extractedText,widget.username);
 
       setState(() {
         _imagePaths.add(picture.path);
         _latestImagePath = picture.path;
         _latestImageTimestamp = DateTime.now();
-        _detectedText = reText.text;
+        _detectedText = extractedText;
       });
 
     } catch (e) {
       print(e);
     }
   }
-  
+
+
+  Future<void> _insertDataIntoPostgreSQL(String imageUrl, DateTime timestamp, String location, String deviceInfo,String groupid,String extractedText,String username) async {
+    try {
+      // Execute an insert query to insert data into PostgreSQL table
+      await conn?.execute('INSERT INTO ai.image_store (image_url, capturetime, location, devicename,groupid,extracted_text,username)VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7)',
+          parameters: [imageUrl, timestamp, location, deviceInfo,groupid,extractedText,username]);
+
+      print('Data inserted into PostgreSQL successfully');
+    } catch (e) {
+      print('Error inserting data into PostgreSQL: $e');
+    }
+  }
 
   Future<void> _getLocation() async {
     try {
@@ -253,9 +257,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _selectquery() async {
     try {
-      final results = await conn?.execute('SELECT * FROM ai.image_store WHERE devicename LIKE \$1',
-          parameters: ['%$_searchQuery%',] // Search for device names containing the search query
-      );
+      final results = await conn?.execute('SELECT extracted_text FROM ai.image_store');// Search for device names containing the search query
       print(results);
       displayStatistics();
     } catch (e) {
@@ -314,7 +316,7 @@ class _CameraScreenState extends State<CameraScreen> {
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: ElevatedButton(
-                  onPressed: _downloadAndUpload,
+                  onPressed: _selectquery,
                   child: Text('Download Excel & Upload to Drive'),
                 ),
               ),
