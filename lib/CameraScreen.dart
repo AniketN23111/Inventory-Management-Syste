@@ -38,6 +38,8 @@ class _CameraScreenState extends State<CameraScreen> {
   late Connection? conn;
   String _searchQuery = '';
   String _detectedText = '';
+  String _expirydate='';
+  List<String> _ingrediants=[];
   late String _groupId;
   @override
   void initState() {
@@ -48,7 +50,7 @@ class _CameraScreenState extends State<CameraScreen> {
       api=CloudApi(json);
     });
     _captureTimer = Timer.periodic(Duration(seconds: 10), (timer) {
-      _takePictureAndUpload();
+     // _takePictureAndUpload();
     });
     _getLocation();
     _postgraseconnection();
@@ -127,7 +129,7 @@ class _CameraScreenState extends State<CameraScreen> {
       final latestCaptureResult = await conn?.execute(
           'SELECT image_url, capturetime, location, devicename, groupid, extracted_text, username FROM ai.image_store ORDER BY capturetime DESC LIMIT 1');
 
-      print(latestCaptureResult);
+     // print(latestCaptureResult);
 
       if (latestCaptureResult != null && latestCaptureResult.isNotEmpty) {
         final latestCapture = latestCaptureResult[0];
@@ -138,7 +140,7 @@ class _CameraScreenState extends State<CameraScreen> {
           final currentTime = DateTime.now();
           final timeDifference = currentTime.difference(latestCaptureTime).inSeconds;
 
-          if (timeDifference <= 5) {
+          if (timeDifference <= 10) {
             // Reuse the group ID if the time difference is within 5 seconds
             _groupId = latestGroupId;
           } else {
@@ -156,8 +158,7 @@ class _CameraScreenState extends State<CameraScreen> {
         // No previous captures found, generate a new group ID
         _groupId = generateGroupId();
       }
-print(_groupId);
-
+       print(_groupId);
       // Store username and image details in the database
       await _insertDataIntoPostgreSQL(
           response.downloadLink.toString(), DateTime.now().toString(), _currentPosition?.toString() ?? '', widget.deviceName, _groupId, extractedText, widget.username);
@@ -168,6 +169,11 @@ print(_groupId);
         _latestImageTimestamp = DateTime.now();
         _detectedText = extractedText;
       });
+      print(extractedText);
+      _ingrediants = _extractIngredients(extractedText.toString());
+      _expirydate= _extractExpiryDate(extractedText.toString());
+      print("Ingredients:- $_ingrediants");
+      print("Expiry Date:- $_expirydate");
     } catch (e) {
       print(e);
     }
@@ -285,28 +291,107 @@ print(_groupId);
   }
 
   Future<void> _selectquery() async {
-        try {
-          final results = await conn?.execute(
-              'SELECT groupid, capturetime, extracted_text FROM ai.image_store'
-          );
+    try {
+      // Execute a query to retrieve data with similar group IDs
+      final results = await conn?.execute(
+        'SELECT groupid, extracted_text FROM ai.image_store WHERE groupid = \$1',
+        parameters: [_groupId],
+      );
+      print(results);
+      // Print the ingredients and expiry dates for each result
+      results?.forEach((result) {
+        final groupId = result[0];
+        final extractedText = result[1];
 
-          // Group results by group ID
-          final groupedResults = groupBy(results ?? [], (result) => result[0]);
+        // Parse the extracted text to find ingredients and expiry date
+        /*final ingredients = _extractIngredients(extractedText.toString());
+        final expiryDate = _extractExpiryDate(extractedText.toString());
 
-          // Print extracted text for each group
-          groupedResults.forEach((groupId, groupResults) {
-            print('Group ID: $groupId');
-            groupResults.forEach((result) {
-              final captureTime = result[1];
-              final extractedText = result[2];
-              print('  Capture Time: $captureTime, Extracted Text: $extractedText');
-            });
-          });
-        } catch (e) {
-          print('Error executing query: $e');
-        }
-    displayStatistics();
+        print('Group ID: $groupId');
+        print('Ingredients: $ingredients');
+        print('Expiry Date: $expiryDate');*/
+      });
+    } catch (e) {
+      print('Error executing query: $e');
+    }
   }
+
+  List<String> _extractIngredients(String extractedText) {
+    // Define keywords that indicate the start of the ingredients list
+    final ingredientKeywords = ['Ingredients:', 'Contains:', 'Ingredients:', 'INGREDIENTS:'];
+
+    // Iterate through each keyword to find ingredients list
+    for (final keyword in ingredientKeywords) {
+      final startIndex = extractedText.indexOf(keyword);
+      if (startIndex != -1) {
+        // Extract the text after the keyword
+        final textAfterKeyword = extractedText.substring(startIndex + keyword.length);
+
+        // Split the text into lines
+        final lines = textAfterKeyword.split('\n');
+
+        // Remove any leading and trailing whitespace from each line
+        final trimmedLines = lines.map((line) => line.trim()).toList();
+
+        // Remove empty lines
+        final nonEmptyLines = trimmedLines.where((line) => line.isNotEmpty).toList();
+
+        // Return the list of non-empty lines
+        return nonEmptyLines;
+      }
+    }
+    return [];
+  }
+
+  String _extractExpiryDate(String extractedText) {
+    final datePatterns = [
+      r'\b(?:Best Before|Exp|Use By)[: ]+(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
+      r'\b(?:MFG|Mfd|Manufactured) Date[: ]+(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
+      r'(\d{1,2}[./-]\d{4})\b',
+    ];
+
+    DateTime? firstDate;
+    DateTime? secondDate;
+    final currentDate = DateTime.now();
+
+    for (final pattern in datePatterns) {
+      final RegExp regex = RegExp(pattern);
+      final matches = regex.allMatches(extractedText);
+
+      for (final match in matches) {
+        final dateString = match.group(1)!;
+        final parts = dateString.split(RegExp(r'[-/\\]'));
+        final month = int.tryParse(parts[0]);
+        final year = int.tryParse(parts[1]);
+        if (month != null && year != null && year >= 1000) {
+          final date = DateTime(year, month);
+          if (firstDate == null) {
+            firstDate = date;
+          } else if (secondDate == null || date.isAfter(secondDate)) {
+            secondDate = date;
+          }
+        }
+      }
+    }
+
+    if (firstDate != null && secondDate == null) {
+      return 'Expires on ${firstDate.toString()}';
+    } else if (secondDate != null && (secondDate.isAfter(firstDate!) || secondDate.isAtSameMomentAs(firstDate!))) {
+      final expiryDate = secondDate;
+      if (expiryDate.year == currentDate.year && expiryDate.month == currentDate.month) {
+        return 'Expires this month';
+      } else if (expiryDate.isAfter(currentDate)) {
+        return 'Expires on ${expiryDate.toString()}';
+      } else {
+        return 'Expired';
+      }
+    } else {
+      return 'Expiry date not found';
+    }
+  }
+
+
+
   List<String> _filteredImages() {
     if (_searchQuery.isEmpty) {
       return _imagePaths;
@@ -335,7 +420,7 @@ print(_groupId);
                       icon: Icon(Icons.clear),
                       onPressed: () {
                         setState(() {
-                          _selectquery();
+                         // _selectquery();
                         });
                       },
                     ),
@@ -358,8 +443,17 @@ print(_groupId);
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: ElevatedButton(
+                  onPressed: _takePictureAndUpload,
+                  child: Text('Take Photo'),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: ElevatedButton(
                   onPressed: _selectquery,
-                  child: Text('Download Excel & Upload to Drive'),
+                  child: Text('Get Details'),
                 ),
               ),
             ),
@@ -403,6 +497,18 @@ print(_groupId);
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text('Detected Text: $_detectedText'),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Ingredients: $_ingrediants'),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Expiry Date: $_expirydate'),
               ),
             ),
           ],
