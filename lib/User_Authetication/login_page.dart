@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_store/User_Authetication/RegistrationForm.dart';
 import 'package:postgres/postgres.dart';
-import 'choosecamerapage.dart'; // Import the page to navigate to after login
+import 'DevicePage.dart';
+//import 'choosecamerapage.dart'; // Import the page to navigate to after login
 
 class LoginPage extends StatelessWidget {
   @override
@@ -44,7 +45,7 @@ class _LoginFormState extends State<LoginForm> {
           // Navigate to the page where the user can choose a camera
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => ChooseCameraPage(userData!,_usernameController.text.toString())),
+            MaterialPageRoute(builder: (context) => DevicePage(userData!)),
           );
         } else {
           // Show error message for invalid credentials
@@ -132,7 +133,7 @@ class _LoginFormState extends State<LoginForm> {
       );
 
       final result = await connection.execute(
-        'SELECT * FROM ai.image_user WHERE username = \$1 AND password = \$2',
+        'SELECT * FROM ai.device_user WHERE username = \$1 AND password = \$2',
         parameters: [username, password],
       );
 
@@ -159,7 +160,7 @@ class _LoginFormState extends State<LoginForm> {
       );
 
       final result = await connection.execute(
-        'SELECT * FROM ai.image_user WHERE username = \$1',
+        'SELECT * FROM ai.device_user WHERE username = \$1',
         parameters: [username],
       );
 

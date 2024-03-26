@@ -5,19 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_store/api.dart';
-import 'package:open_file/open_file.dart';
+//import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:syncfusion_flutter_xlsio/xlsio.dart';
+//import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:postgres/postgres.dart';
-import 'package:collection/collection.dart';
+import 'package:image/image.dart' as img;
 
 class CameraScreen extends StatefulWidget {
   final String deviceName; // Accept device name as a parameter
   final String username;
-  const CameraScreen({Key? key, required this.deviceName,required this.username}) : super(key: key);
+  final String selectedDevice;
+  final String inventoryType;
+  final List<List<dynamic>> userData;
+  const CameraScreen({Key? key, required this.deviceName,required this.username, required this.userData,required this.selectedDevice,required this.inventoryType}) : super(key: key);
   @override
   _CameraScreenState createState() => _CameraScreenState();
 }
@@ -30,10 +33,10 @@ class _CameraScreenState extends State<CameraScreen> {
   String? _latestImagePath;
   late DateTime? _latestImageTimestamp;
   late Timer _captureTimer;
-  late String _deviceInfo=widget.deviceName.toString();
+ // late String _deviceInfo=widget.selectedDevice.toString();
   Position? _currentPosition;
   late String imagename;
-  late Uint8List _imgebytes;
+  //late Uint8List _imgebytes;
   late CloudApi api;
   late Connection? conn;
   String _searchQuery = '';
@@ -41,6 +44,7 @@ class _CameraScreenState extends State<CameraScreen> {
   String _expirydate='';
   List<String> _ingrediants=[];
   late String _groupId;
+  late String _inventoryType=widget.inventoryType.toString();
   @override
   void initState() {
     super.initState();
@@ -106,74 +110,100 @@ class _CameraScreenState extends State<CameraScreen> {
     if (_controller!.value.isTakingPicture) {
       return null;
     }
-
+    Uint8List _imgebytes = Uint8List(0);
     try {
       XFile picture = await _controller!.takePicture();
       final File imageFile = File(picture.path);
-      _imgebytes = imageFile.readAsBytesSync();
-      final fileName = picture.path.split('/').last;
-      final metadata = <String, String>{
-        'timestamp': DateTime.now().millisecondsSinceEpoch.toString(),
-        'device_info': widget.deviceName,
-        'location': _currentPosition?.toString() ?? '',
-      };
-      // Upload the file to the bucket
-      final response = await api.save(fileName, _imgebytes, metadata);
-      print(response.downloadLink);
-      print(metadata.toString());
+      img.Image? image = img.decodeImage(imageFile.readAsBytesSync());
+      if (image != null) {
+        image = img.grayscale(image);
+        final grayscaleBytes = img.encodePng(image);
+        final grayscaleImageFile = File('${dirPath}/grayscale_${DateTime
+            .now()
+            .millisecondsSinceEpoch}.png');
+        await grayscaleImageFile.writeAsBytes(grayscaleBytes);
 
-      final textRecognizer = TextRecognizer();
-      final inputImage = InputImage.fromFile(imageFile);
-      final recognizedText = await textRecognizer.processImage(inputImage);
-      final extractedText = recognizedText.text;
-      final latestCaptureResult = await conn?.execute(
-          'SELECT image_url, capturetime, location, devicename, groupid, extracted_text, username FROM ai.image_store ORDER BY capturetime DESC LIMIT 1');
+        // Use grayscale image for text recognition
+        final fileName = grayscaleImageFile.path
+            .split('/')
+            .last;
+        final metadata = <String, String>{
+          'timestamp': DateTime
+              .now()
+              .millisecondsSinceEpoch
+              .toString(),
+          'device_info': widget.deviceName,
+          'location': _currentPosition?.toString() ?? '',
+        };
+        // Upload the file to the bucket
+        final response = await api.save(fileName, _imgebytes, metadata);
+        print(response.downloadLink);
+        print(metadata.toString());
 
-     // print(latestCaptureResult);
+        final textRecognizer = TextRecognizer();
+        final inputImage = InputImage.fromFile(imageFile);
+        final recognizedText = await textRecognizer.processImage(inputImage);
+        final extractedText = recognizedText.text;
+        final latestCaptureResult = await conn?.execute(
+            'SELECT image_url, capturetime, location, devicename, groupid, extracted_text, username FROM ai.image_store ORDER BY capturetime DESC LIMIT 1');
 
-      if (latestCaptureResult != null && latestCaptureResult.isNotEmpty) {
-        final latestCapture = latestCaptureResult[0];
-        try {
-          final DateTime latestCaptureTime = DateTime.parse(latestCapture[1] as String);
-          final String latestGroupId = latestCapture[4] as String;
+        // print(latestCaptureResult);
 
-          final currentTime = DateTime.now();
-          final timeDifference = currentTime.difference(latestCaptureTime).inSeconds;
+        if (latestCaptureResult != null && latestCaptureResult.isNotEmpty) {
+          final latestCapture = latestCaptureResult[0];
+          try {
+            final DateTime latestCaptureTime = DateTime.parse(
+                latestCapture[1] as String);
+            final String latestGroupId = latestCapture[4] as String;
 
-          if (timeDifference <= 10) {
-            // Reuse the group ID if the time difference is within 5 seconds
-            _groupId = latestGroupId;
-          } else {
-            // Generate a new group ID
+            final currentTime = DateTime.now();
+            final timeDifference = currentTime
+                .difference(latestCaptureTime)
+                .inSeconds;
+
+            if (timeDifference <= 10) {
+              // Reuse the group ID if the time difference is within 5 seconds
+              _groupId = latestGroupId;
+            } else {
+              // Generate a new group ID
+              _groupId = generateGroupId();
+            }
+          } catch (e) {
+            print('Error parsing data: $e');
+            // Handle the error here, such as skipping this data and moving forward
+            // You can choose to log the error, skip this data, or take any other appropriate action
+            // For example, you can generate a new group ID and continue
             _groupId = generateGroupId();
           }
-        } catch (e) {
-          print('Error parsing data: $e');
-          // Handle the error here, such as skipping this data and moving forward
-          // You can choose to log the error, skip this data, or take any other appropriate action
-          // For example, you can generate a new group ID and continue
+        } else {
+          // No previous captures found, generate a new group ID
           _groupId = generateGroupId();
         }
-      } else {
-        // No previous captures found, generate a new group ID
-        _groupId = generateGroupId();
-      }
-       print(_groupId);
-      // Store username and image details in the database
-      await _insertDataIntoPostgreSQL(
-          response.downloadLink.toString(), DateTime.now().toString(), _currentPosition?.toString() ?? '', widget.deviceName, _groupId, extractedText, widget.username);
+        print(_groupId);
+        // Store username and image details in the database
+        await _insertDataIntoPostgreSQL(
+            response.downloadLink.toString(),
+            DateTime.now().toString(),
+            _currentPosition?.toString() ?? '',
+            widget.deviceName,
+            _groupId,
+            extractedText,
+            widget.username);
 
-      setState(() {
-        _imagePaths.add(picture.path);
-        _latestImagePath = picture.path;
-        _latestImageTimestamp = DateTime.now();
-        _detectedText = extractedText;
-      });
-      print(extractedText);
-      _ingrediants = _extractIngredients(extractedText.toString());
-      _expirydate= _extractExpiryDate(extractedText.toString());
-      print("Ingredients:- $_ingrediants");
-      print("Expiry Date:- $_expirydate");
+        setState(() {
+          _imagePaths.add(picture.path);
+          _latestImagePath = picture.path;
+          _latestImageTimestamp = DateTime.now();
+          _detectedText = extractedText;
+        });
+        print(extractedText);
+        _ingrediants = _extractIngredients(extractedText.toString());
+        _expirydate = _extractExpiryDate(extractedText.toString());
+        final productName = _extractProductName(extractedText);
+        print("Ingredients:- $_ingrediants");
+        print("Expiry Date:- $_expirydate");
+        print('Product Name: $productName');
+      }
     } catch (e) {
       print(e);
     }
@@ -203,7 +233,7 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _downloadAndUpload() async {
+  /*Future<void> _downloadAndUpload() async {
     try {
       final Workbook workbook = Workbook();
       final Worksheet sheet = workbook.worksheets[0];
@@ -240,7 +270,7 @@ class _CameraScreenState extends State<CameraScreen> {
     } catch (e) {
       print('Error during download and upload: $e');
     }
-  }
+  }*/
 
   Future<Map<String, int>> getPhotoCountsByDevice() async {
     try {
@@ -273,7 +303,7 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> displayStatistics() async {
     try {
       final deviceStats = await getPhotoCountsByDevice();
-      final dateStats = await getPhotoCountsByDate();
+     // final dateStats = await getPhotoCountsByDate();
 
       // Calculate total number of photos
       int totalPhotos = deviceStats.values.fold(0, (sum, count) => sum + count);
@@ -290,7 +320,7 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _selectquery() async {
+  /*Future<void> _selectquery() async {
     try {
       // Execute a query to retrieve data with similar group IDs
       final results = await conn?.execute(
@@ -304,17 +334,127 @@ class _CameraScreenState extends State<CameraScreen> {
         final extractedText = result[1];
 
         // Parse the extracted text to find ingredients and expiry date
-        /*final ingredients = _extractIngredients(extractedText.toString());
+        *//*final ingredients = _extractIngredients(extractedText.toString());
         final expiryDate = _extractExpiryDate(extractedText.toString());
 
         print('Group ID: $groupId');
         print('Ingredients: $ingredients');
-        print('Expiry Date: $expiryDate');*/
+        print('Expiry Date: $expiryDate');*//*
       });
     } catch (e) {
       print('Error executing query: $e');
     }
+  }*/
+  Future<void> _selectquery() async {
+    try {
+      // Execute a query to retrieve data with similar group IDs
+      final results = await conn?.execute(
+        'SELECT groupid, extracted_text FROM ai.image_store WHERE groupid = \$1',
+        parameters: [_groupId],
+      );
+
+      // Combine all extracted texts with the same group ID
+      String combinedText = '';
+      for (final result in results ?? []) {
+        final extractedText = result[1] as String;
+        combinedText += extractedText + ' '; // Combine the extracted texts
+      }
+
+      // Extract product name and expiry date from the combined text
+      final productName = _extractProductName(combinedText);
+      final expiryDate = _extractExpiryDate(combinedText);
+
+      print('Combined Text: $combinedText');
+      print('Product Name: $productName');
+      print('Expiry Date: $expiryDate');
+      print('Inventory Type: $_inventoryType');
+
+      // Check if both product name and expiry date are not null
+      if (productName.isNotEmpty && expiryDate.isNotEmpty && expiryDate != 'Expiry date not found') {
+        // Store the data in the "inventory" table
+        await _insertDataIntoInventory(productName, expiryDate);
+        print('Data stored in inventory table: $productName, $expiryDate');
+      } else {
+        print('Product name or expiry date is null or invalid, data not stored in inventory table.');
+      }
+
+      // Now you can store or further process the productName and expiryDate as needed
+    } catch (e) {
+      print('Error executing query: $e');
+    }
   }
+
+  Future<void> _insertDataIntoInventory(String itemName, String expiryDate) async {
+    try {
+      // Execute an insert query to insert data into the "inventory" table
+      await conn?.execute(
+        'INSERT INTO ai.inventory (item_name, expiry_date) VALUES (\$1, \$2)',
+        parameters: [itemName, expiryDate],
+      );
+      if (_inventoryType == 'Inward') {
+        await _updateOrInsertDataIntoInwardInventory(itemName, expiryDate);
+      } else if (_inventoryType == 'Outward') {
+        await _updateOrInsertDataIntoOutwardInventory(itemName, expiryDate);
+      } else {
+        print('Invalid inventory type: $_inventoryType');
+      }
+      print('Data inserted into inventory table successfully');
+    } catch (e) {
+      print('Error inserting data into inventory table: $e');
+    }
+  }
+  Future<void> _updateOrInsertDataIntoInwardInventory(String itemName, String expiryDate) async {
+    try {
+      final result = await conn?.execute(
+        'SELECT * FROM ai.inventory_inward_outward WHERE inward_device = \$1 AND item_name = \$2',
+        parameters:[widget.selectedDevice, itemName],
+      );
+      if (result != null && result.isNotEmpty) {
+        // Product exists, update the count
+        await conn?.execute(
+          'UPDATE ai.inventory_inward_outward SET inward = inward + 1 WHERE inward_device = \$1 AND item_name = \$2',
+          parameters:[widget.selectedDevice, itemName],
+        );
+        print('Data updated in inward inventory table successfully');
+      } else {
+        // Product does not exist, insert a new entry
+        await conn?.execute(
+          'INSERT INTO ai.inventory_inward_outward (inward_device, inward, item_name, date) VALUES (\$1, \$2, \$3, \$4)',
+          parameters:[widget.selectedDevice, 1, itemName, expiryDate],
+        );
+        print('Data inserted into inward inventory table successfully');
+      }
+    } catch (e) {
+      print('Error updating or inserting data into inward inventory table: $e');
+    }
+  }
+
+  Future<void> _updateOrInsertDataIntoOutwardInventory(String itemName, String expiryDate) async {
+    try {
+      final result = await conn?.execute(
+        'SELECT * FROM ai.inventory_inward_outward WHERE outward_device = \$1 AND item_name = \$2',
+       parameters: [widget.selectedDevice, itemName],
+      );
+      if (result != null && result.isNotEmpty) {
+        // Product exists, update the count
+        await conn?.execute(
+          'UPDATE ai.inventory_inward_outward SET outward = outward + 1 WHERE outward_device = \$1 AND item_name = \$2',
+          parameters:[widget.selectedDevice, itemName],
+        );
+        print('Data updated in outward inventory table successfully');
+      } else {
+        // Product does not exist, insert a new entry
+        await conn?.execute(
+          'INSERT INTO ai.inventory_inward_outward (outward_device, outward, item_name, date) VALUES (\$1, \$2, \$3, \$4)',
+          parameters: [widget.selectedDevice, 1, itemName, expiryDate],
+        );
+        print('Data inserted into outward inventory table successfully');
+      }
+    } catch (e) {
+      print('Error updating or inserting data into outward inventory table: $e');
+    }
+  }
+
 
   List<String> _extractIngredients(String extractedText) {
     // Define keywords that indicate the start of the ingredients list
@@ -348,6 +488,8 @@ class _CameraScreenState extends State<CameraScreen> {
       r'\b(?:Best Before|Exp|Use By)[: ]+(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
       r'\b(?:MFG|Mfd|Manufactured) Date[: ]+(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
       r'(\d{1,2}[./-]\d{4})\b',
+      r'\bBest\s*Before:\s*([A-Z]+)\s*/\s*(\d{1,2})\b',
+      r'(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',// Added pattern for "Best Before:FEB/25"
     ];
 
     DateTime? firstDate;
@@ -359,16 +501,80 @@ class _CameraScreenState extends State<CameraScreen> {
       final matches = regex.allMatches(extractedText);
 
       for (final match in matches) {
-        final dateString = match.group(1)!;
-        final parts = dateString.split(RegExp(r'[-/\\]'));
-        final month = int.tryParse(parts[0]);
-        final year = int.tryParse(parts[1]);
-        if (month != null && year != null && year >= 1000) {
-          final date = DateTime(year, month);
-          if (firstDate == null) {
-            firstDate = date;
-          } else if (secondDate == null || date.isAfter(secondDate)) {
-            secondDate = date;
+        if (pattern.contains('Best Before')) {
+          final monthString = match.group(1);
+          final dayString = match.group(2);
+
+          final currentDate = DateTime.now();
+          final currentYear = currentDate.year;
+
+          int month = 1;
+          switch (monthString) {
+            case 'JAN':
+              month = 1;
+              break;
+            case 'FEB':
+              month = 2;
+              break;
+            case 'MAR':
+              month = 3;
+              break;
+            case 'APR':
+              month = 4;
+              break;
+            case 'MAY':
+              month = 5;
+              break;
+            case 'JUN':
+              month = 6;
+              break;
+            case 'JUL':
+              month = 7;
+              break;
+            case 'AUG':
+              month = 8;
+              break;
+            case 'SEP':
+              month = 9;
+              break;
+            case 'OCT':
+              month = 10;
+              break;
+            case 'NOV':
+              month = 11;
+              break;
+            case 'DEC':
+              month = 12;
+              break;
+            default:
+            // Handle unknown month string
+              continue; // Skip processing if month is unknown
+          }
+
+          final day = int.tryParse(dayString!);
+
+          if (day != null && month != null) {
+            final expiryDate = DateTime(currentYear, month, day);
+            if (expiryDate.year == currentDate.year && expiryDate.month == currentDate.month) {
+              return 'Expires this month';
+            } else if (expiryDate.isAfter(currentDate)) {
+              return 'Expires on ${expiryDate.toString()}';
+            } else {
+              return 'Expired';
+            }
+          }
+        } else {
+          final dateString = match.group(1)!;
+          final parts = dateString.split(RegExp(r'[-/\\]'));
+          final month = int.tryParse(parts[0]);
+          final year = int.tryParse(parts[1]);
+          if (month != null && year != null && year >= 1000) {
+            final date = DateTime(year, month);
+            if (firstDate == null) {
+              firstDate = date;
+            } else if (secondDate == null || date.isAfter(secondDate)) {
+              secondDate = date;
+            }
           }
         }
       }
@@ -376,21 +582,12 @@ class _CameraScreenState extends State<CameraScreen> {
 
     if (firstDate != null && secondDate == null) {
       return 'Expires on ${firstDate.toString()}';
-    } else if (secondDate != null && (secondDate.isAfter(firstDate!) || secondDate.isAtSameMomentAs(firstDate!))) {
-      final expiryDate = secondDate;
-      if (expiryDate.year == currentDate.year && expiryDate.month == currentDate.month) {
-        return 'Expires this month';
-      } else if (expiryDate.isAfter(currentDate)) {
-        return 'Expires on ${expiryDate.toString()}';
-      } else {
-        return 'Expired';
-      }
+    } else if (secondDate != null && (secondDate.isAfter(currentDate) || secondDate.isAtSameMomentAs(currentDate))) {
+      return 'Expires on ${secondDate.toString()}';
     } else {
       return 'Expiry date not found';
     }
   }
-
-
 
   List<String> _filteredImages() {
     if (_searchQuery.isEmpty) {
@@ -398,6 +595,20 @@ class _CameraScreenState extends State<CameraScreen> {
     } else {
       return _imagePaths.where((path) => path.contains(_searchQuery)).toList();
     }
+  }
+  String _extractProductName(String extractedText) {
+    // Define keywords that indicate the start of the product name
+    final productNameKeywords = ['PONDS DREAMFLOWER', 'PRODUCT NAME:', 'Tacrolimus Ointment'];
+
+    // Iterate through each keyword to find the product name
+    for (final keyword in productNameKeywords) {
+      final startIndex = extractedText.indexOf(keyword);
+      if (startIndex != -1) {
+        return keyword; // Return the matching keyword as the product name
+      }
+    }
+
+    return 'Product name not found'; // Return if no keyword is found
   }
 
   @override
@@ -424,7 +635,15 @@ class _CameraScreenState extends State<CameraScreen> {
                         });
                       },
                     ),
-                  ),
+                    prefixIcon: IconButton(
+                      icon: Icon(Icons.search),
+                      onPressed: () {
+                        setState(() {
+                            _selectquery();
+                        });
+                       }
+                      ),
+                    ),
                   onChanged: (value) {
                     setState(() {
                       _searchQuery = value.toLowerCase();
@@ -448,7 +667,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(
+              SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: ElevatedButton(

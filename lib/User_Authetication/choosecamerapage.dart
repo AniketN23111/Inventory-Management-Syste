@@ -1,44 +1,78 @@
 import 'package:flutter/material.dart';
-
-import '../CameraScreen.dart';
+import 'package:image_store/CameraScreen.dart';
 
 class ChooseCameraPage extends StatelessWidget {
   final List<List<dynamic>> userData;
   final String username;
+  final String selectedDevice;
 
-  ChooseCameraPage(this.userData,this.username);
+  ChooseCameraPage({
+    required this.userData,
+    required this.username,
+    required this.selectedDevice,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // List to store cameras for the selected device
+    List<String> cameras = [];
+
+    // Find the index of the row for the selected device
+    int deviceIndex = userData.indexWhere((row) => row.contains(selectedDevice));
+
+    // If the device is found, extract camera names from indices 3 to 8
+    if (deviceIndex != -1) {
+      for (int j = 3; j < 9; j++) {
+        String cameraName = userData[deviceIndex][j].toString();
+        if (cameraName.isNotEmpty) {
+          cameras.add(cameraName);
+        }
+      }
+    }
+    // Function to get the inventory type from the selected device
+    String getInventoryTypeFromSelectedDevice() {
+      String inventoryType = '';
+      if (deviceIndex != -1 && userData[deviceIndex].length > 11) {
+        inventoryType = userData[deviceIndex][11].toString();
+      }
+      return inventoryType;
+    }
+    // Load inventory type at the start
+    String inventoryType = getInventoryTypeFromSelectedDevice();
+    print(inventoryType);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Choose Camera'),
+        title: Text('Cameras for $selectedDevice'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
-              'Welcome ${userData[0][0]}, choose a camera:',
+              'Cameras for $selectedDevice:',
               style: TextStyle(fontSize: 20),
             ),
             SizedBox(height: 20),
-            // Display the list of available cameras for the logged-in user
             ListView.builder(
               shrinkWrap: true,
-              itemCount: userData[0].length - 2, // Exclude non-camera columns
+              itemCount: cameras.length,
               itemBuilder: (context, index) {
-                // Skip the first two columns (username, password)
-                if (index < 2) {
-                  return SizedBox.shrink();
-                }
                 return ListTile(
-                  title: Text(userData[0][index + 1]), // Add 1 to skip the first column (username)
-                  // Add onTap callback to handle camera selection
+                  title: Text(cameras[index]),
                   onTap: () {
+                    // Navigate to CameraScreen when a camera is tapped
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => CameraScreen(deviceName: userData[0][index + 1],username: username,)),
+                      MaterialPageRoute(
+                        builder: (context) => CameraScreen(
+                          deviceName: cameras[index],
+                          username: username,
+                          selectedDevice: selectedDevice,
+                          inventoryType: inventoryType, // Pass the inventory type to the CameraScreen
+                          userData: userData,
+                        ),
+                      ),
                     );
                   },
                 );
