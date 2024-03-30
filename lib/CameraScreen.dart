@@ -13,14 +13,20 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:postgres/postgres.dart';
 import 'package:image/image.dart' as img;
+import 'package:intl/intl.dart';
+
+import 'AddDevicePage.dart';
+import 'InventoryDetailsPage.dart';
+import 'ProductDetailsPage.dart';
 
 class CameraScreen extends StatefulWidget {
   final String deviceName; // Accept device name as a parameter
   final String username;
   final String selectedDevice;
   final String inventoryType;
+  final String brandName;
   final List<List<dynamic>> userData;
-  const CameraScreen({Key? key, required this.deviceName,required this.username, required this.userData,required this.selectedDevice,required this.inventoryType}) : super(key: key);
+  const CameraScreen({Key? key, required this.deviceName,required this.username, required this.userData,required this.selectedDevice,required this.inventoryType,required this.brandName}) : super(key: key);
   @override
   _CameraScreenState createState() => _CameraScreenState();
 }
@@ -45,16 +51,21 @@ class _CameraScreenState extends State<CameraScreen> {
   List<String> _ingrediants=[];
   late String _groupId;
   late String _inventoryType=widget.inventoryType.toString();
+  int remaining=0;
+  String product_name='';
+  List<String> _filteredProducts = [];
+  late DateTime _selectedDate;
   @override
   void initState() {
     super.initState();
+    _selectedDate = DateTime.now();
       _initializeCamera();
     _groupId = '';
     rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((json){
       api=CloudApi(json);
     });
     _captureTimer = Timer.periodic(Duration(seconds: 10), (timer) {
-     // _takePictureAndUpload();
+      //_takePictureAndUpload();
     });
     _getLocation();
     _postgraseconnection();
@@ -73,6 +84,7 @@ class _CameraScreenState extends State<CameraScreen> {
       );
       print("Connected successfully");
       print(widget.username);
+      print(widget.brandName);
     }
     catch(e)
     {
@@ -81,7 +93,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
   String generateGroupId() {
     // Generate group id based on device name and timestamp
-    return '${widget.username}_${DateTime.now().millisecondsSinceEpoch}';
+    return '${widget.username}_${widget.selectedDevice}_${DateTime.now().millisecondsSinceEpoch}';
   }
   Future<void> _initializeCamera() async {
     _cameras = await availableCameras();
@@ -161,8 +173,8 @@ class _CameraScreenState extends State<CameraScreen> {
                 .difference(latestCaptureTime)
                 .inSeconds;
 
-            if (timeDifference <= 10) {
-              // Reuse the group ID if the time difference is within 5 seconds
+            if (timeDifference <= 9) {
+              // Reuse the group ID if the time difference is within 10 seconds
               _groupId = latestGroupId;
             } else {
               // Generate a new group ID
@@ -185,7 +197,7 @@ class _CameraScreenState extends State<CameraScreen> {
             response.downloadLink.toString(),
             DateTime.now().toString(),
             _currentPosition?.toString() ?? '',
-            widget.deviceName,
+            widget.selectedDevice,
             _groupId,
             extractedText,
             widget.username);
@@ -204,6 +216,7 @@ class _CameraScreenState extends State<CameraScreen> {
         print("Expiry Date:- $_expirydate");
         print('Product Name: $productName');
       }
+      //_uploadData();
     } catch (e) {
       print(e);
     }
@@ -233,119 +246,93 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  /*Future<void> _downloadAndUpload() async {
+  Future<List<String>> _searchProduct(String query) async {
+    final List<String> products = [];
     try {
-      final Workbook workbook = Workbook();
-      final Worksheet sheet = workbook.worksheets[0];
-
-      sheet.getRangeByIndex(1, 1).setText("File Name");
-      sheet.getRangeByIndex(1, 2).setText("Mobile Name");
-      sheet.getRangeByIndex(1, 3).setText("Timestamp");
-      sheet.getRangeByIndex(1, 4).setText("Location");
-
-      // Write Mobile info, Timestamp, Location, and File Name for each image
-      for (int i = 0; i < _imagePaths.length; i++) {
-        sheet.getRangeByIndex(i + 2, 1).setText(_imagePaths[i].split('/').last);
-        sheet.getRangeByIndex(i + 2, 2).setText(_deviceInfo); // Mobile info in column A
-        sheet.getRangeByIndex(i + 2, 3).setText(_latestImageTimestamp?.toString() ?? ''); // Timestamp in column B
-        sheet.getRangeByIndex(i + 2, 4).setText(_currentPosition?.toString() ?? ''); // Location in column C
-        // File Name in column D
-      }
-      final List<int> bytes = workbook.saveAsStream();
-      workbook.dispose();
-
-      final String path = (await getApplicationSupportDirectory()).path;
-      final String fileName = '$path/Output.xlsx';
-      final File file = File(fileName);
-      await file.writeAsBytes(bytes, flush: true);
-
-      // Upload images to Google Drive
-      for (final imagePath in _imagePaths) {
-        final imageFile = File(imagePath);
-      }
-
-      // Open the downloaded file
-      OpenFile.open(fileName);
-
-    } catch (e) {
-      print('Error during download and upload: $e');
-    }
-  }*/
-
-  Future<Map<String, int>> getPhotoCountsByDevice() async {
-    try {
-      final results = await conn?.execute('SELECT devicename, COUNT(*) FROM ai.image_store GROUP BY devicename');
-      Map<String, int> photoCountsByDevice = {};
-      for (final row in results ?? []) {
-        photoCountsByDevice[row[0]] = row[1];
-      }
-      return photoCountsByDevice;
-    } catch (e) {
-      print('Error fetching photo counts by device: $e');
-      return {};
-    }
-  }
-
-  Future<Map<String, int>> getPhotoCountsByDate() async {
-    try {
-      final results = await conn?.execute('SELECT DATE(capturetime), COUNT(*) FROM ai.image_store GROUP BY DATE(capturetime)');
-      Map<String, int> photoCountsByDate = {};
-      for (final row in results ?? []) {
-        photoCountsByDate[row[0]] = row[1];
-      }
-      return photoCountsByDate;
-    } catch (e) {
-      print('Error fetching photo counts by date: $e');
-      return {};
-    }
-  }
-
-  Future<void> displayStatistics() async {
-    try {
-      final deviceStats = await getPhotoCountsByDevice();
-     // final dateStats = await getPhotoCountsByDate();
-
-      // Calculate total number of photos
-      int totalPhotos = deviceStats.values.fold(0, (sum, count) => sum + count);
-
-      print('Total number of photos: $totalPhotos');
-
-      print('\nPhoto counts by device:');
-      deviceStats.forEach((device, count) {
-        print('$device: $count photos');
-      });
-
-    } catch (e) {
-      print('Error fetching and displaying inventory statistics: $e');
-    }
-  }
-
-  /*Future<void> _selectquery() async {
-    try {
-      // Execute a query to retrieve data with similar group IDs
       final results = await conn?.execute(
-        'SELECT groupid, extracted_text FROM ai.image_store WHERE groupid = \$1',
-        parameters: [_groupId],
+        Sql.named('SELECT item_name FROM ai.inventory_inward_outward WHERE item_name ILIKE @query AND username = @username'),
+        parameters: {
+          'query': '%$query%',
+          'username': widget.username,
+        },
       );
-      print(results);
-      // Print the ingredients and expiry dates for each result
-      results?.forEach((result) {
-        final groupId = result[0];
-        final extractedText = result[1];
-
-        // Parse the extracted text to find ingredients and expiry date
-        *//*final ingredients = _extractIngredients(extractedText.toString());
-        final expiryDate = _extractExpiryDate(extractedText.toString());
-
-        print('Group ID: $groupId');
-        print('Ingredients: $ingredients');
-        print('Expiry Date: $expiryDate');*//*
-      });
+      for (final row in results!) {
+        final productName = row[0] as String;
+        products.add(productName);
+      }
     } catch (e) {
       print('Error executing query: $e');
     }
-  }*/
-  Future<void> _selectquery() async {
+    return products;
+  }
+
+
+  void _onProductTap(String productName) async {
+    // Fetch product details
+    final productDetails = await getProductDetails(productName,widget.username);
+    // Navigate to product details page and pass the details
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductDetailsPage(
+          productDetails: productDetails,
+          username: widget.username, // Pass the username
+        ),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> getProductDetails(String productName, String username) async {
+    try {
+      final results = await conn?.execute(
+        'SELECT * FROM ai.inventory_inward_outward WHERE item_name = \$1 AND username = \$2',
+        parameters:[productName, username],
+      );
+      if (results != null && results.isNotEmpty) {
+        // Return the first row of the query result
+        return results.first.toColumnMap();
+      } else {
+        return {}; // Return an empty map if no results found
+      }
+    } catch (e) {
+      print('Error fetching product details: $e');
+      return {}; // Return an empty map in case of error
+    }
+  }
+
+
+  Future<void> _searchInventoryByDate(String selectedDate) async {
+    print(selectedDate);
+    try {
+      final results = await conn?.execute(
+        'SELECT item_name, inward, outward FROM ai.inventory_inward_outward WHERE date = \$1',
+        parameters: [selectedDate],
+      );
+      print(results);
+      List<Map<String, dynamic>> inventoryData = [];
+      if (results != null) {
+        for (var result in results) {
+          inventoryData.add({
+            'item_name': result[0],
+            'inward': result[1],
+            'outward': result[2],
+          });
+        }
+      }
+      // Process the results and display them on a new page
+      // Navigate to the new page with the inventory data
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => InventoryDetailsPage(inventoryData: inventoryData),
+        ),
+      );
+    } catch (e) {
+      print('Error searching inventory by date: $e');
+    }
+  }
+
+  Future<void> _uploadData() async {
     try {
       // Execute a query to retrieve data with similar group IDs
       final results = await conn?.execute(
@@ -355,15 +342,18 @@ class _CameraScreenState extends State<CameraScreen> {
 
       // Combine all extracted texts with the same group ID
       String combinedText = '';
+      String groupid = '';
+      String brandname = '';
       for (final result in results ?? []) {
         final extractedText = result[1] as String;
-        combinedText += extractedText + ' '; // Combine the extracted texts
+        combinedText += extractedText + ' ';
+        groupid = result[0] as String;
       }
 
       // Extract product name and expiry date from the combined text
       final productName = _extractProductName(combinedText);
       final expiryDate = _extractExpiryDate(combinedText);
-
+      brandname =widget.brandName;
       print('Combined Text: $combinedText');
       print('Product Name: $productName');
       print('Expiry Date: $expiryDate');
@@ -372,7 +362,7 @@ class _CameraScreenState extends State<CameraScreen> {
       // Check if both product name and expiry date are not null
       if (productName.isNotEmpty && expiryDate.isNotEmpty && expiryDate != 'Expiry date not found') {
         // Store the data in the "inventory" table
-        await _insertDataIntoInventory(productName, expiryDate);
+        await _insertDataIntoInventory(productName,expiryDate,groupid,brandname);
         print('Data stored in inventory table: $productName, $expiryDate');
       } else {
         print('Product name or expiry date is null or invalid, data not stored in inventory table.');
@@ -384,17 +374,24 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _insertDataIntoInventory(String itemName, String expiryDate) async {
+  Future<void> _insertDataIntoInventory(String itemName, String expiryDate,String GroupID, String BrandName) async {
     try {
+      final currentDate = DateTime.now().toIso8601String();
+      int deviceIndex = widget.userData.indexWhere((row) => row.contains(widget.selectedDevice));
+      String username =widget.username;
+      String location =widget.userData[deviceIndex][12];
+      String device=widget.selectedDevice;
+      print(location);
+      print(device);
       // Execute an insert query to insert data into the "inventory" table
       await conn?.execute(
-        'INSERT INTO ai.inventory (item_name, expiry_date) VALUES (\$1, \$2)',
-        parameters: [itemName, expiryDate],
+        'INSERT INTO ai.inventory (item_name, expiry_date,groupid,brandname,location,device) VALUES (\$1, \$2,\$3, \$4,\$5,\$6)',
+        parameters: [itemName, expiryDate,GroupID,BrandName,location,device],
       );
       if (_inventoryType == 'Inward') {
-        await _updateOrInsertDataIntoInwardInventory(itemName, expiryDate);
+        await _updateOrInsertDataIntoInwardInventory(itemName, expiryDate, username, currentDate,BrandName);
       } else if (_inventoryType == 'Outward') {
-        await _updateOrInsertDataIntoOutwardInventory(itemName, expiryDate);
+        await _updateOrInsertDataIntoOutwardInventory(itemName, expiryDate, username, currentDate,BrandName);
       } else {
         print('Invalid inventory type: $_inventoryType');
       }
@@ -403,24 +400,24 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Error inserting data into inventory table: $e');
     }
   }
-  Future<void> _updateOrInsertDataIntoInwardInventory(String itemName, String expiryDate) async {
+  Future<void> _updateOrInsertDataIntoInwardInventory(String itemName, String expiryDate, String username, String currentDate, String brandname) async {
     try {
       final result = await conn?.execute(
-        'SELECT * FROM ai.inventory_inward_outward WHERE inward_device = \$1 AND item_name = \$2',
-        parameters:[widget.selectedDevice, itemName],
+        'SELECT * FROM ai.inventory_inward_outward WHERE item_name = \$1 AND expiry_date = \$2 AND inward_device = \$3 AND username = \$4 AND date = \$5',
+        parameters: [itemName, expiryDate, widget.selectedDevice, username, currentDate],
       );
       if (result != null && result.isNotEmpty) {
-        // Product exists, update the count
+        // Record exists, update inward device
         await conn?.execute(
-          'UPDATE ai.inventory_inward_outward SET inward = inward + 1 WHERE inward_device = \$1 AND item_name = \$2',
-          parameters:[widget.selectedDevice, itemName],
+          'UPDATE ai.inventory_inward_outward SET inward = inward + 1,inward_device = \$1 WHERE item_name = \$2 AND expiry_date = \$3 AND inward_device = \$4 AND username = \$5 AND date = \$6',
+          parameters: [widget.selectedDevice, itemName, expiryDate, widget.selectedDevice, username, currentDate],
         );
-        print('Data updated in inward inventory table successfully');
+        print('Inward record updated for $itemName on $currentDate');
       } else {
-        // Product does not exist, insert a new entry
+        // Record does not exist, insert a new entry with inward
         await conn?.execute(
-          'INSERT INTO ai.inventory_inward_outward (inward_device, inward, item_name, date) VALUES (\$1, \$2, \$3, \$4)',
-          parameters:[widget.selectedDevice, 1, itemName, expiryDate],
+          'INSERT INTO ai.inventory_inward_outward (inward_device, inward, item_name, expiry_date, username, date, brandname) VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7)',
+          parameters: [widget.selectedDevice, 1, itemName, expiryDate, username, currentDate, brandname],
         );
         print('Data inserted into inward inventory table successfully');
       }
@@ -429,24 +426,24 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _updateOrInsertDataIntoOutwardInventory(String itemName, String expiryDate) async {
+  Future<void> _updateOrInsertDataIntoOutwardInventory(String itemName, String expiryDate, String username, String currentDate, String brandname) async {
     try {
       final result = await conn?.execute(
-        'SELECT * FROM ai.inventory_inward_outward WHERE outward_device = \$1 AND item_name = \$2',
-       parameters: [widget.selectedDevice, itemName],
+        'SELECT * FROM ai.inventory_inward_outward WHERE item_name = \$1 AND expiry_date = \$2 AND outward_device = \$3 AND username = \$4 AND date = \$5',
+        parameters: [itemName, expiryDate, widget.selectedDevice, username, currentDate],
       );
       if (result != null && result.isNotEmpty) {
-        // Product exists, update the count
+        // Record exists, update outward device
         await conn?.execute(
-          'UPDATE ai.inventory_inward_outward SET outward = outward + 1 WHERE outward_device = \$1 AND item_name = \$2',
-          parameters:[widget.selectedDevice, itemName],
+          'UPDATE ai.inventory_inward_outward SET outward= outward + 1,outward_device = \$1 WHERE item_name = \$2 AND expiry_date = \$3 AND outward_device = \$4 AND username = \$5 AND date = \$6',
+          parameters: [widget.selectedDevice, itemName, expiryDate, widget.selectedDevice, username, currentDate],
         );
-        print('Data updated in outward inventory table successfully');
+        print('Outward record updated for $itemName on $currentDate');
       } else {
-        // Product does not exist, insert a new entry
+        // Record does not exist, insert a new entry with outward
         await conn?.execute(
-          'INSERT INTO ai.inventory_inward_outward (outward_device, outward, item_name, date) VALUES (\$1, \$2, \$3, \$4)',
-          parameters: [widget.selectedDevice, 1, itemName, expiryDate],
+          'INSERT INTO ai.inventory_inward_outward (outward_device, outward, item_name, expiry_date, username, date, brandname) VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7)',
+          parameters: [widget.selectedDevice, 1, itemName, expiryDate, username, currentDate, brandname],
         );
         print('Data inserted into outward inventory table successfully');
       }
@@ -454,7 +451,6 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Error updating or inserting data into outward inventory table: $e');
     }
   }
-
 
   List<String> _extractIngredients(String extractedText) {
     // Define keywords that indicate the start of the ingredients list
@@ -618,38 +614,103 @@ class _CameraScreenState extends State<CameraScreen> {
     }
     return Scaffold(
       appBar: AppBar(title: Text('Auto Capture')),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'Drawer Header',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              title: Text('Add Device'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddDevicePage(userData: widget.userData)), // Navigate to AddDevicePage
+                );
+              },
+            ),
+            // Add more ListTile widgets for other options if needed
+          ],
+        ),
+      ),
       body: Container(
         child: CustomScrollView(
           slivers: <Widget>[
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(16.0),
-                child: TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Search by device name',
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () {
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Search by product name',
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                          _searchProduct(value);
+                        },
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.search),
+                      onPressed: () async {
+                        final products = await _searchProduct(_searchQuery);
                         setState(() {
-                         // _selectquery();
+                          _filteredProducts = products;
                         });
                       },
                     ),
-                    prefixIcon: IconButton(
-                      icon: Icon(Icons.search),
-                      onPressed: () {
-                        setState(() {
-                            _selectquery();
-                        });
-                       }
-                      ),
-                    ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.toLowerCase();
-                    });
-                  },
+                    IconButton(
+                      icon: Icon(Icons.calendar_today),
+                      onPressed: () async {
+                        final DateTime? selectedDate = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now(),
+                        );
+                        if (selectedDate != null) {
+                          setState(() {
+                            _selectedDate = selectedDate;
+                          });
+                          String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+                          print(formattedDate); // Print formatted date
+                          _searchInventoryByDate(formattedDate);
+                        }
+                      },
+                    )
+                  ],
                 ),
+              ),
+            ),
+            // Display filtered products
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                  return _filteredProducts.isNotEmpty
+                      ? GestureDetector(
+                    onTap: () => _onProductTap(_filteredProducts[index]),
+                    child: ListTile(
+                      title: Text(_filteredProducts[index]),
+                    ),
+                  )
+                      : Container();
+                },
+                childCount: _filteredProducts.length,
               ),
             ),
             SliverToBoxAdapter(
@@ -667,12 +728,12 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
               ),
             ),
-              SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: ElevatedButton(
-                  onPressed: _selectquery,
-                  child: Text('Get Details'),
+                  onPressed: _uploadData,
+                  child: Text('Upload Data'),
                 ),
               ),
             ),
@@ -730,11 +791,24 @@ class _CameraScreenState extends State<CameraScreen> {
                 child: Text('Expiry Date: $_expirydate'),
               ),
             ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Product Name: $product_name'),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Remaining: $remaining'),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+
 
   @override
   void dispose() {

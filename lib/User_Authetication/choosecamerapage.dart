@@ -5,11 +5,13 @@ class ChooseCameraPage extends StatelessWidget {
   final List<List<dynamic>> userData;
   final String username;
   final String selectedDevice;
+  final String brandName;
 
   ChooseCameraPage({
     required this.userData,
     required this.username,
     required this.selectedDevice,
+    required this.brandName,
   });
 
   @override
@@ -29,6 +31,7 @@ class ChooseCameraPage extends StatelessWidget {
         }
       }
     }
+
     // Function to get the inventory type from the selected device
     String getInventoryTypeFromSelectedDevice() {
       String inventoryType = '';
@@ -37,49 +40,71 @@ class ChooseCameraPage extends StatelessWidget {
       }
       return inventoryType;
     }
-    // Load inventory type at the start
+
+    // Function to get organization name from the selected device
+    String getOrganizationNameFromSelectedDevice() {
+      String organizationName = '';
+      if (deviceIndex != -1 && userData[deviceIndex].length > 12) {
+        organizationName = userData[deviceIndex][2].toString();
+      }
+      return organizationName;
+    }
+
     String inventoryType = getInventoryTypeFromSelectedDevice();
-    print(inventoryType);
+    String organizationName = getOrganizationNameFromSelectedDevice();
+
+    // Concatenate device name, organization name, and inventory type for the app bar title and text widget
+    String appBarTitle = '$selectedDevice - $organizationName - $brandName - $inventoryType';
+    String textWidgetText = 'Cameras for $selectedDevice - $inventoryType:';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cameras for $selectedDevice'),
+        title: Text(appBarTitle),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'Cameras for $selectedDevice:',
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Organization Name: $organizationName',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            'Brand Name: $brandName',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Center(
+            child: Text(
+              textWidgetText,
               style: TextStyle(fontSize: 20),
             ),
-            SizedBox(height: 20),
-            ListView.builder(
-              shrinkWrap: true,
-              itemCount: cameras.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(cameras[index]),
-                  onTap: () {
-                    // Navigate to CameraScreen when a camera is tapped
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CameraScreen(
-                          deviceName: cameras[index],
-                          username: username,
-                          selectedDevice: selectedDevice,
-                          inventoryType: inventoryType, // Pass the inventory type to the CameraScreen
-                          userData: userData,
-                        ),
+          ),
+          SizedBox(height: 20),
+          ListView.builder(
+            shrinkWrap: true,
+            itemCount: cameras.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                title: Text(cameras[index]),
+                onTap: () {
+                  // Navigate to CameraScreen when a camera is tapped
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CameraScreen(
+                        deviceName: cameras[index],
+                        username: username,
+                        selectedDevice: selectedDevice,
+                        inventoryType: inventoryType, // Pass the inventory type to the CameraScreen
+                        brandName: brandName,
+                        userData: userData,
                       ),
-                    );
-                  },
-                );
-              },
-            ),
-          ],
-        ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
       ),
     );
   }
