@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:image_store/User_Authetication/RegistrationForm.dart';
+import 'package:image_store/User_Authentication/RegistrationForm.dart';
 import 'package:postgres/postgres.dart';
 import 'DevicePage.dart';
 //import 'choosecamerapage.dart'; // Import the page to navigate to after login

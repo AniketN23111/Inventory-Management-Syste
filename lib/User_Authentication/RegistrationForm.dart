@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:postgres/postgres.dart';
-import 'package:image_store/User_Authetication/login_page.dart';
+import 'package:image_store/User_Authentication/login_page.dart';
 
 class RegistrationForm extends StatefulWidget {
+  const RegistrationForm({super.key});
+
   @override
   _RegistrationFormState createState() => _RegistrationFormState();
 }
@@ -13,9 +15,9 @@ class _RegistrationFormState extends State<RegistrationForm> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _orgNameController = TextEditingController();
   final TextEditingController _brandNameController = TextEditingController();
-  List<Map<String, dynamic>> _deviceControllers = [];
+  final List<Map<String, dynamic>> _deviceControllers = [];
 
-  List<String> _inventoryTypes = ['Inward', 'Outward', 'None'];
+  final List<String> _inventoryTypes = ['Inward', 'Outward', 'None'];
 
   @override
   Widget build(BuildContext context) {
