@@ -12,8 +12,7 @@ class CloudApi {
 
   Future<ObjectInfo> save(String name, Uint8List imgBytes, Map<String, String> metadata) async {
     // Create a client
-    if (_client == null)
-      _client = await auth.clientViaServiceAccount(_credentials, Storage.SCOPES);
+    _client ??= await auth.clientViaServiceAccount(_credentials, Storage.SCOPES);
 
     // Instantiate objects to cloud storage
     var storage = Storage(_client!, 'Image Upload Google Storage');
@@ -29,8 +28,7 @@ class CloudApi {
   }
 
   Future<Map<String, String>?> getMetadata(String name) async {
-    if (_client == null)
-      _client = await auth.clientViaServiceAccount(_credentials, Storage.SCOPES);
+    _client ??= await auth.clientViaServiceAccount(_credentials, Storage.SCOPES);
 
     var storage = Storage(_client!, 'Image Upload Google Storage');
     var bucket = storage.bucket('imagestore_camera');

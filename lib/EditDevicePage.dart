@@ -92,10 +92,10 @@ class _EditDevicePageState extends State<EditDevicePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit Devices'),
+        title: const Text('Edit Devices'),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator()) // Show progress indicator while loading data
+          ? const Center(child: CircularProgressIndicator()) // Show progress indicator while loading data
           : ListView.builder(
         itemCount: _devices.length,
         itemBuilder: (context, index) {

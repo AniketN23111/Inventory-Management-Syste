@@ -5,18 +5,22 @@ import 'DevicePage.dart';
 //import 'choosecamerapage.dart'; // Import the page to navigate to after login
 
 class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login'),
+        title: const Text('Login'),
       ),
-      body: LoginForm(), // Display the login form
+      body: const LoginForm(), // Display the login form
     );
   }
 }
 
 class LoginForm extends StatefulWidget {
+  const LoginForm({super.key});
+
   @override
   _LoginFormState createState() => _LoginFormState();
 }
@@ -56,14 +60,14 @@ class _LoginFormState extends State<LoginForm> {
         } else {
           // Show error message for invalid credentials
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Invalid username or password')),
+            const SnackBar(content: Text('Invalid username or password')),
           );
         }
       } catch (e) {
         // Handle errors
         print('Login failed: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed. Please try again.')),
+          const SnackBar(content: Text('Login failed. Please try again.')),
         );
       } finally {
         setState(() {
@@ -76,7 +80,7 @@ class _LoginFormState extends State<LoginForm> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16.0),
       child: Form(
         key: _formKey,
         child: Column(
@@ -84,7 +88,7 @@ class _LoginFormState extends State<LoginForm> {
           children: <Widget>[
             TextFormField(
               controller: _usernameController,
-              decoration: InputDecoration(labelText: 'Username'),
+              decoration: const InputDecoration(labelText: 'Username'),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter your username';
@@ -94,7 +98,7 @@ class _LoginFormState extends State<LoginForm> {
             ),
             TextFormField(
               controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Password'),
+              decoration: const InputDecoration(labelText: 'Password'),
               obscureText: true,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -103,7 +107,7 @@ class _LoginFormState extends State<LoginForm> {
                 return null;
               },
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity, // Expand the SizedBox to full width
               child: ElevatedButton(

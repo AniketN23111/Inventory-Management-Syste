@@ -7,7 +7,7 @@ class ChooseCameraPage extends StatelessWidget {
   final String selectedDevice;
   final String brandName;
 
-  ChooseCameraPage({
+  const ChooseCameraPage({super.key,
     required this.userData,
     required this.username,
     required this.selectedDevice,
@@ -66,19 +66,19 @@ class ChooseCameraPage extends StatelessWidget {
         children: <Widget>[
           Text(
             'Organization Name: $organizationName',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           Text(
             'Brand Name: $brandName',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           Center(
             child: Text(
               textWidgetText,
-              style: TextStyle(fontSize: 20),
+              style: const TextStyle(fontSize: 20),
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           ListView.builder(
             shrinkWrap: true,
             itemCount: cameras.length,

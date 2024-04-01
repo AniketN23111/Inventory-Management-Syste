@@ -21,17 +21,17 @@ class _RegistrationFormState extends State<RegistrationForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Registration'),
+        title: const Text('Registration'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: <Widget>[
               TextFormField(
                 controller: _usernameController,
-                decoration: InputDecoration(labelText: 'Username'),
+                decoration: const InputDecoration(labelText: 'Username'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your username';
@@ -41,7 +41,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
               ),
               TextFormField(
                 controller: _passwordController,
-                decoration: InputDecoration(labelText: 'Password'),
+                decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -52,7 +52,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
               ),
               TextFormField(
                 controller: _orgNameController,
-                decoration: InputDecoration(labelText: 'Organization Name'),
+                decoration: const InputDecoration(labelText: 'Organization Name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your organization name';
@@ -62,7 +62,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
               ),
               TextFormField(
                 controller: _brandNameController,
-                decoration: InputDecoration(labelText: 'Brand Name'),
+                decoration: const InputDecoration(labelText: 'Brand Name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your Brand name';
@@ -70,7 +70,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   return null;
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               // Generate device fields dynamically
               for (int i = 0; i < _deviceControllers.length; i++)
                 Column(
@@ -78,7 +78,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   children: [
                     TextFormField(
                       controller: _deviceControllers[i]['deviceName'],
-                      decoration: InputDecoration(labelText: 'Device Name'),
+                      decoration: const InputDecoration(labelText: 'Device Name'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter device name';
@@ -88,7 +88,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     ),
                     TextFormField(
                       controller: _deviceControllers[i]['deviceLocation'],
-                      decoration: InputDecoration(labelText: 'Device Location'),
+                      decoration: const InputDecoration(labelText: 'Device Location'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter device location';
@@ -110,9 +110,9 @@ class _RegistrationFormState extends State<RegistrationForm> {
                               .toString();
                         });
                       },
-                      decoration: InputDecoration(labelText: 'Inventory Type'),
+                      decoration: const InputDecoration(labelText: 'Inventory Type'),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     // Generate camera fields dynamically
                     for (int j = 0; j <
                         _deviceControllers[i]['cameraControllers'].length; j++)
@@ -128,7 +128,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
                           return null;
                         },
                       ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     if (_deviceControllers[i]['cameraControllers'].length < 6)
                       ElevatedButton(
                         onPressed: () {
@@ -137,11 +137,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
                                 TextEditingController());
                           });
                         },
-                        child: Text('Add Camera'),
+                        child: const Text('Add Camera'),
                       ),
                   ],
                 ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -153,9 +153,9 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     });
                   });
                 },
-                child: Text('Add Device'),
+                child: const Text('Add Device'),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
@@ -169,17 +169,17 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     if (isRegistered) {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => LoginPage()),
+                        MaterialPageRoute(builder: (context) => const LoginPage()),
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(
+                        const SnackBar(content: Text(
                             'Registration failed. Please try again.')),
                       );
                     }
                   }
                 },
-                child: Text('Register'),
+                child: const Text('Register'),
               ),
             ],
           ),

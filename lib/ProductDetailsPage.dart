@@ -4,15 +4,15 @@ class ProductDetailsPage extends StatelessWidget {
   final Map<String, dynamic> productDetails;
   final String username;
 
-  ProductDetailsPage({required this.productDetails, required this.username});
+  const ProductDetailsPage({super.key, required this.productDetails, required this.username});
 
   @override
   Widget build(BuildContext context) {
     // Check if the product belongs to the current user
     if (productDetails['username'] != username) {
       return Scaffold(
-        appBar: AppBar(title: Text('Product Details')),
-        body: Center(
+        appBar: AppBar(title: const Text('Product Details')),
+        body: const Center(
           child: Text('You are not authorized to view this product details.'),
         ),
       );
@@ -34,7 +34,7 @@ class ProductDetailsPage extends StatelessWidget {
     bool isOutwardDevicePresent = outwardDevice.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Product Details')),
+      appBar: AppBar(title: const Text('Product Details')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -42,45 +42,45 @@ class ProductDetailsPage extends StatelessWidget {
           children: [
             Text(
               'Expiry Date: $expiryDate',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               'Product Name: $productName',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Table(
               border: TableBorder.all(),
               children: [
-                TableRow(
+                const TableRow(
                   children: [
                     TableCell(child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.0),
                       child: Text('SrNo'),
                     )),
                     TableCell(child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.0),
                       child: Text('Date'),
                     )),
                     TableCell(child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.0),
                       child: Text('Device'),
                     )),
                     TableCell(child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.0),
                       child: Text('Brand'),
                     )),
                     TableCell(child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.0),
                       child: Text('Product'),
                     )),
                     TableCell(child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.0),
                       child: Text('Inward'),
                     )),
                     TableCell(child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(8.0),
                       child: Text('Outward'),
                     )),
                   ],
@@ -88,8 +88,8 @@ class ProductDetailsPage extends StatelessWidget {
                 if (isInwardDevicePresent) // Add row for inward device
                   TableRow(
                     children: [
-                      TableCell(child: Padding(
-                        padding: const EdgeInsets.all(8.0),
+                      const TableCell(child: Padding(
+                        padding: EdgeInsets.all(8.0),
                         child: Text('1'), // Assuming this is for the first row
                       )),
                       TableCell(child: Padding(
@@ -112,8 +112,8 @@ class ProductDetailsPage extends StatelessWidget {
                         padding: const EdgeInsets.all(8.0),
                         child: Text(inward.toString()),
                       )),
-                      TableCell(child: Padding(
-                        padding: const EdgeInsets.all(8.0),
+                      const TableCell(child: Padding(
+                        padding: EdgeInsets.all(8.0),
                         child: Text(''),
                       )),
                     ],
@@ -121,8 +121,8 @@ class ProductDetailsPage extends StatelessWidget {
                 if (isOutwardDevicePresent) // Add row for outward device
                   TableRow(
                     children: [
-                      TableCell(child: Padding(
-                        padding: const EdgeInsets.all(8.0),
+                      const TableCell(child: Padding(
+                        padding: EdgeInsets.all(8.0),
                         child: Text('2'), // Assuming this is for the second row
                       )),
                       TableCell(child: Padding(
@@ -137,8 +137,8 @@ class ProductDetailsPage extends StatelessWidget {
                         padding: const EdgeInsets.all(8.0),
                         child: Text(productName),
                       )),
-                      TableCell(child: Padding(
-                        padding: const EdgeInsets.all(8.0),
+                      const TableCell(child: Padding(
+                        padding: EdgeInsets.all(8.0),
                         child: Text(''),
                       )),
                       TableCell(child: Padding(
@@ -149,10 +149,10 @@ class ProductDetailsPage extends StatelessWidget {
                   ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               'Remaining Quantity: ${inward - outward}',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
         ),

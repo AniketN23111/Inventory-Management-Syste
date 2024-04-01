@@ -13,14 +13,14 @@ class AddDevicePage extends StatefulWidget {
 
 class _AddDevicePageState extends State<AddDevicePage> {
   final _formKey = GlobalKey<FormState>();
-  List<Map<String, dynamic>> _deviceControllers = [];
+  final List<Map<String, dynamic>> _deviceControllers = [];
 
   String username = '';
   String password = '';
   String orgName = '';
   String brandName = '';
 
-  List<String> _inventoryTypes = ['Inward', 'Outward', 'None'];
+  final List<String> _inventoryTypes = ['Inward', 'Outward', 'None'];
 
   @override
   void initState() {
@@ -36,10 +36,10 @@ class _AddDevicePageState extends State<AddDevicePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Device'),
+        title: const Text('Add Device'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
@@ -49,14 +49,14 @@ class _AddDevicePageState extends State<AddDevicePage> {
               Text('Password: $password'),
               Text('Organization Name: $orgName'),
               Text('Brand Name: $brandName'),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               for (int i = 0; i < _deviceControllers.length; i++)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextFormField(
                       controller: _deviceControllers[i]['deviceName'],
-                      decoration: InputDecoration(labelText: 'Device Name'),
+                      decoration: const InputDecoration(labelText: 'Device Name'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter device name';
@@ -66,7 +66,7 @@ class _AddDevicePageState extends State<AddDevicePage> {
                     ),
                     TextFormField(
                       controller: _deviceControllers[i]['deviceLocation'],
-                      decoration: InputDecoration(labelText: 'Device Location'),
+                      decoration: const InputDecoration(labelText: 'Device Location'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter device location';
@@ -87,9 +87,9 @@ class _AddDevicePageState extends State<AddDevicePage> {
                           _deviceControllers[i]['inventoryType'] = value.toString();
                         });
                       },
-                      decoration: InputDecoration(labelText: 'Inventory Type'),
+                      decoration: const InputDecoration(labelText: 'Inventory Type'),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     // Generate camera fields dynamically
                     for (int j = 0; j < _deviceControllers[i]['cameraControllers'].length; j++)
                       TextFormField(
@@ -104,7 +104,7 @@ class _AddDevicePageState extends State<AddDevicePage> {
                           return null;
                         },
                       ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     if (_deviceControllers[i]['cameraControllers'].length < 6)
                       ElevatedButton(
                         onPressed: () {
@@ -112,11 +112,11 @@ class _AddDevicePageState extends State<AddDevicePage> {
                             _deviceControllers[i]['cameraControllers'].add(TextEditingController());
                           });
                         },
-                        child: Text('Add Camera'),
+                        child: const Text('Add Camera'),
                       ),
                   ],
                 ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -128,16 +128,16 @@ class _AddDevicePageState extends State<AddDevicePage> {
                     });
                   });
                 },
-                child: Text('Add Device'),
+                child: const Text('Add Device'),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               // Button to submit data
               ElevatedButton(
                 onPressed: () async {
                   showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (context) => AlertDialog(
+                    builder: (context) => const AlertDialog(
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -152,15 +152,15 @@ class _AddDevicePageState extends State<AddDevicePage> {
                   Navigator.pop(context); // Close the dialog
                   if (isRegistered) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Device added successfully!')),
+                      const SnackBar(content: Text('Device added successfully!')),
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to add device. Please try again.')),
+                      const SnackBar(content: Text('Failed to add device. Please try again.')),
                     );
                   }
                 },
-                child: Text('Submit'),
+                child: const Text('Submit'),
               ),
             ],
           ),

@@ -65,7 +65,7 @@ class _CameraScreenState extends State<CameraScreen> {
     rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((json){
       api=CloudApi(json);
     });
-    _captureTimer = Timer.periodic(Duration(seconds: 10), (timer) {
+    _captureTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       //_takePictureAndUpload();
     });
     _getLocation();
@@ -347,7 +347,7 @@ class _CameraScreenState extends State<CameraScreen> {
       String brandname = '';
       for (final result in results ?? []) {
         final extractedText = result[1] as String;
-        combinedText += extractedText + ' ';
+        combinedText += '$extractedText ';
         groupid = result[0] as String;
       }
 
@@ -614,7 +614,7 @@ class _CameraScreenState extends State<CameraScreen> {
       return Container(); // Return a placeholder widget if the camera is not initialized
     }
     return Scaffold(
-      appBar: AppBar(title: Text('Auto Capture')),
+      appBar: AppBar(title: const Text('Auto Capture')),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -622,12 +622,12 @@ class _CameraScreenState extends State<CameraScreen> {
             UserAccountsDrawerHeader(
               accountName: Text(widget.username), // Display username in the header
               accountEmail: null, // Set to null or provide user's email if available
-              currentAccountPicture: CircleAvatar(
+              currentAccountPicture: const CircleAvatar(
                 child: Icon(Icons.person), // You can replace Icon with user's profile picture
               ),
             ),
             ListTile(
-              title: Text('Edit Devices'),
+              title: const Text('Edit Devices'),
               onTap: () {
                 Navigator.pop(context); // Close the drawer
                 Navigator.push(
@@ -637,7 +637,7 @@ class _CameraScreenState extends State<CameraScreen> {
               },
             ),
             ListTile(
-              title: Text('Add Device'),
+              title: const Text('Add Device'),
               onTap: () {
                 Navigator.pop(context); // Close the drawer
                 Navigator.push(
@@ -650,167 +650,165 @@ class _CameraScreenState extends State<CameraScreen> {
           ],
         ),
       ),
-      body: Container(
-        child: CustomScrollView(
-          slivers: <Widget>[
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Search by product name',
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value;
-                          });
-                          _searchProduct(value);
-                        },
+      body: CustomScrollView(
+        slivers: <Widget>[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Search by product name',
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.search),
-                      onPressed: () async {
-                        final products = await _searchProduct(_searchQuery);
+                      onChanged: (value) {
                         setState(() {
-                          _filteredProducts = products;
+                          _searchQuery = value;
                         });
+                        _searchProduct(value);
                       },
                     ),
-                    IconButton(
-                      icon: Icon(Icons.calendar_today),
-                      onPressed: () async {
-                        final DateTime? selectedDate = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedDate,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime.now(),
-                        );
-                        if (selectedDate != null) {
-                          setState(() {
-                            _selectedDate = selectedDate;
-                          });
-                          String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
-                          print(formattedDate); // Print formatted date
-                          _searchInventoryByDate(formattedDate);
-                        }
-                      },
-                    )
-                  ],
-                ),
-              ),
-            ),
-            // Display filtered products
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                  return _filteredProducts.isNotEmpty
-                      ? GestureDetector(
-                    onTap: () => _onProductTap(_filteredProducts[index]),
-                    child: ListTile(
-                      title: Text(_filteredProducts[index]),
-                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: () async {
+                      final products = await _searchProduct(_searchQuery);
+                      setState(() {
+                        _filteredProducts = products;
+                      });
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () async {
+                      final DateTime? selectedDate = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (selectedDate != null) {
+                        setState(() {
+                          _selectedDate = selectedDate;
+                        });
+                        String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+                        print(formattedDate); // Print formatted date
+                        _searchInventoryByDate(formattedDate);
+                      }
+                    },
                   )
-                      : Container();
-                },
-                childCount: _filteredProducts.length,
+                ],
               ),
             ),
-            SliverToBoxAdapter(
-              child: Container(
-                height: 500, // Adjust the height as needed
-                child: CameraPreview(_controller!),
+          ),
+          // Display filtered products
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                return _filteredProducts.isNotEmpty
+                    ? GestureDetector(
+                  onTap: () => _onProductTap(_filteredProducts[index]),
+                  child: ListTile(
+                    title: Text(_filteredProducts[index]),
+                  ),
+                )
+                    : Container();
+              },
+              childCount: _filteredProducts.length,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 500, // Adjust the height as needed
+              child: CameraPreview(_controller!),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                onPressed: _takePictureAndUpload,
+                child: const Text('Take Photo'),
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: ElevatedButton(
-                  onPressed: _takePictureAndUpload,
-                  child: Text('Take Photo'),
-                ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                onPressed: _uploadData,
+                child: const Text('Upload Data'),
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: ElevatedButton(
-                  onPressed: _uploadData,
-                  child: Text('Upload Data'),
-                ),
-              ),
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                return _latestImagePath != null
+                    ? Container(
+                  padding: const EdgeInsets.all(16.0),
+                )
+                    : Container();
+              },
+              childCount: 1,
             ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                  return _latestImagePath != null
-                      ? Container(
-                    padding: EdgeInsets.all(16.0),
-                  )
-                      : Container();
-                },
-                childCount: 1,
-              ),
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                final filteredPaths = _filteredImages();
+                return filteredPaths.isNotEmpty
+                    ? SizedBox(
+                  height: 100.0,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: filteredPaths.length,
+                    itemBuilder: (context, index) {
+                      final imagePath = filteredPaths[index];
+                      return Container(
+                        margin: const EdgeInsets.all(4.0),
+                        child: Image.file(File(imagePath), height: 80.0),
+                      );
+                    },
+                  ),
+                )
+                    : Container();
+              },
+              childCount: 1,
             ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                  final filteredPaths = _filteredImages();
-                  return filteredPaths.isNotEmpty
-                      ? Container(
-                    height: 100.0,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: filteredPaths.length,
-                      itemBuilder: (context, index) {
-                        final imagePath = filteredPaths[index];
-                        return Container(
-                          margin: EdgeInsets.all(4.0),
-                          child: Image.file(File(imagePath), height: 80.0),
-                        );
-                      },
-                    ),
-                  )
-                      : Container();
-                },
-                childCount: 1,
-              ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text('Detected Text: $_detectedText'),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text('Detected Text: $_detectedText'),
-              ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text('Ingredients: $_ingrediants'),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text('Ingredients: $_ingrediants'),
-              ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text('Expiry Date: $_expirydate'),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text('Expiry Date: $_expirydate'),
-              ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text('Product Name: $product_name'),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text('Product Name: $product_name'),
-              ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text('Remaining: $remaining'),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text('Remaining: $remaining'),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -4,7 +4,7 @@ import 'package:image_store/User_Authetication/choosecamerapage.dart';
 class DevicePage extends StatelessWidget {
   final List<List<dynamic>> userData;
 
-  DevicePage(this.userData);
+  const DevicePage(this.userData, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +37,11 @@ class DevicePage extends StatelessWidget {
                 children: [
                   Text(
                     'Organization Name: $organizationName',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     'Brand Name: $brandName',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -51,11 +51,11 @@ class DevicePage extends StatelessWidget {
               child: Center(
                 child: Text(
                   'Devices for $username:',
-                  style: TextStyle(fontSize: 20),
+                  style: const TextStyle(fontSize: 20),
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
                 shrinkWrap: true,
