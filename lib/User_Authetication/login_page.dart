@@ -29,8 +29,14 @@ class _LoginFormState extends State<LoginForm> {
   // Variable to hold user data
   List<List<dynamic>>? userData;
 
+  // Variable to track login state
+  bool _isLoggingIn = false;
+
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoggingIn = true; // Set login state to true when login process starts
+      });
       try {
         // Fetch user credentials from PostgreSQL
         final isValid = await fetchUserCredentials(
@@ -42,7 +48,7 @@ class _LoginFormState extends State<LoginForm> {
           // Fetch user data after successful login
           userData = await fetchUserData(_usernameController.text.toString());
 
-          // Navigate to the page where the user can choose a camera
+          // Navigate to the page where the user can choose a Device
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => DevicePage(userData!)),
@@ -59,6 +65,10 @@ class _LoginFormState extends State<LoginForm> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Login failed. Please try again.')),
         );
+      } finally {
+        setState(() {
+          _isLoggingIn = false; // Reset login state to false when login process completes
+        });
       }
     }
   }
@@ -94,16 +104,34 @@ class _LoginFormState extends State<LoginForm> {
               },
             ),
             SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _login, // Call _login method when the button is pressed
-              child: Text('Login'),
+            SizedBox(
+              width: double.infinity, // Expand the SizedBox to full width
+              child: ElevatedButton(
+                onPressed: _isLoggingIn ? null : _login,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (_isLoggingIn) const SizedBox(
+                      width: 24, // Set the width of the progress indicator
+                      height: 24, // Set the height of the progress indicator
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, // Adjust the stroke width of the progress indicator
+                      ),
+                    ), // Show progress indicator when login is in progress
+                    const Text('Login'),
+                  ],
+                ),
+              ),
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationForm()));
-              },
-              child: Text('Register'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity, // Expand the SizedBox to full width
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationForm()));
+                },
+                child: const Text('Register'),
+              ),
             ),
           ],
         ),

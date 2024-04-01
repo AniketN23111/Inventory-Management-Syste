@@ -15,7 +15,9 @@ class DevicePage extends StatelessWidget {
     List<String> devices = [];
 
     for (int i = 0; i < userData.length; i++) {
-      if (userData[i][0] == username && userData[i][1] == password) {
+      if (userData[i][0] == username &&
+          userData[i][1] == password &&
+          userData[i][13] == true) { // Check if the device is active
         devices.add('${userData[i][10]} - ${userData[i][11]}');
       }
     }

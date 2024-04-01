@@ -16,6 +16,7 @@ import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 
 import 'AddDevicePage.dart';
+import 'EditDevicePage.dart';
 import 'InventoryDetailsPage.dart';
 import 'ProductDetailsPage.dart';
 
@@ -618,17 +619,22 @@ class _CameraScreenState extends State<CameraScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
+            UserAccountsDrawerHeader(
+              accountName: Text(widget.username), // Display username in the header
+              accountEmail: null, // Set to null or provide user's email if available
+              currentAccountPicture: CircleAvatar(
+                child: Icon(Icons.person), // You can replace Icon with user's profile picture
               ),
-              child: Text(
-                'Drawer Header',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
+            ),
+            ListTile(
+              title: Text('Edit Devices'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => EditDevicePage(userData: widget.userData,)), // Navigate to DeviceEditingPage
+                );
+              },
             ),
             ListTile(
               title: Text('Add Device'),
