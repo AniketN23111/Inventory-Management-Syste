@@ -35,12 +35,12 @@ class _EditDevicePageState extends State<EditDevicePage> {
       );
 
       final results = await connection.execute(
-        Sql.named('SELECT device_name, active FROM ai.device_user WHERE username = @username'),
+        Sql.named('SELECT device_name, active,device_location,inventory_type FROM ai.device_user WHERE username = @username'),
         parameters: {'username': widget.userData[0][0]},
       );
 
       setState(() {
-        _devices = results.map((row) => {'deviceName': row[0], 'active': row[1]}).toList();
+        _devices = results.map((row) => {'deviceName': row[0], 'active': row[1],'location':row[2],'inventory_type': row[3]}).toList();
         // Initialize loading states for each device to false
         _loadingStates = List.generate(_devices.length, (_) => false);
         _isLoading = false; // Set overall loading state to false when data is loaded
@@ -90,6 +90,7 @@ class _EditDevicePageState extends State<EditDevicePage> {
 
   @override
   Widget build(BuildContext context) {
+    _devices.sort((a, b) => a['deviceName'].compareTo(b['deviceName']));
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Devices'),
@@ -101,10 +102,17 @@ class _EditDevicePageState extends State<EditDevicePage> {
         itemBuilder: (context, index) {
           final deviceName = _devices[index]['deviceName'];
           final isActive = _devices[index]['active'] as bool;
+          final location = _devices[index]['location']; // Assuming 'location' is a key in your data
+          final inventoryType = _devices[index]['inventory_type']; // Assuming 'inventoryType' is a key in your data
 
           return ListTile(
-            title: Text(deviceName),
-            subtitle: Text(isActive ? 'Active' : 'Inactive'),
+            title: Text("$deviceName    $location    $inventoryType"),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(isActive ? 'Active' : 'Inactive'),
+              ],
+            ),
             trailing: _loadingStates[index]
                 ? const SizedBox(
               width: 24, // Set the width of the progress indicator

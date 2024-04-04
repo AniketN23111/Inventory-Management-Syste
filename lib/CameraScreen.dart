@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image_store/AllProductDetails.dart';
 import 'package:image_store/api.dart';
 //import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
@@ -248,7 +249,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<List<String>> _searchProduct(String query) async {
-    final List<String> products = [];
+    final Set<String> uniqueProducts = {}; // Use a set to store unique product names
     try {
       final results = await conn?.execute(
         Sql.named('SELECT item_name FROM ai.inventory_inward_outward WHERE item_name ILIKE @query AND username = @username'),
@@ -259,14 +260,43 @@ class _CameraScreenState extends State<CameraScreen> {
       );
       for (final row in results!) {
         final productName = row[0] as String;
-        products.add(productName);
+        uniqueProducts.add(productName); // Add product name to the set
       }
     } catch (e) {
       print('Error executing query: $e');
     }
-    return products;
+    // Convert set back to list before returning
+    return uniqueProducts.toList();
   }
 
+  Future<void> _getDetails() async {
+    try {
+      final results = await conn?.execute(
+        'SELECT * FROM ai.inventory_inward_outward WHERE username = \$1',
+        parameters: [widget.username],
+      );
+      if (results != null && results.isNotEmpty) {
+        // Convert the query results to a list of maps
+        List<Map<String, dynamic>> productDetailsList = [];
+        for (final result in results) {
+          productDetailsList.add(result.toColumnMap());
+        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AllProductDetails(
+              productDetailsList: productDetailsList,
+            ),
+          ),
+        );
+      } else {
+        // No matching records found
+        print('No matching records found for username: ${widget.username}');
+      }
+    } catch (e) {
+      print('Error fetching product details: $e');
+    }
+  }
 
   void _onProductTap(String productName) async {
     // Fetch product details
@@ -276,32 +306,35 @@ class _CameraScreenState extends State<CameraScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => ProductDetailsPage(
-          productDetails: productDetails,
+          productDetailsList: productDetails,
           username: widget.username, // Pass the username
+          userData: widget.userData,
         ),
       ),
     );
   }
 
-  Future<Map<String, dynamic>> getProductDetails(String productName, String username) async {
+  Future<List<Map<String, dynamic>>> getProductDetails(String productName, String username) async {
     try {
       final results = await conn?.execute(
         'SELECT * FROM ai.inventory_inward_outward WHERE item_name = \$1 AND username = \$2',
         parameters:[productName, username],
       );
       if (results != null && results.isNotEmpty) {
-        // Return the first row of the query result
-        return results.first.toColumnMap();
+        // Convert query results to a list of maps
+        List<Map<String, dynamic>> productDetailsList = [];
+        for (final result in results) {
+          productDetailsList.add(result.toColumnMap());
+        }
+        return productDetailsList;
       } else {
-        return {}; // Return an empty map if no results found
+        return []; // Return an empty list if no results found
       }
     } catch (e) {
       print('Error fetching product details: $e');
-      return {}; // Return an empty map in case of error
+      return []; // Return an empty list in case of error
     }
   }
-
-
   Future<void> _searchInventoryByDate(String selectedDate) async {
     print(selectedDate);
     try {
@@ -486,7 +519,7 @@ class _CameraScreenState extends State<CameraScreen> {
       r'\b(?:MFG|Mfd|Manufactured) Date[: ]+(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
       r'(\d{1,2}[./-]\d{4})\b',
       r'\bBest\s*Before:\s*([A-Z]+)\s*/\s*(\d{1,2})\b',
-      r'(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',// Added pattern for "Best Before:FEB/25"
+      r'(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b', // Added pattern for "Best Before:FEB/25"
     ];
 
     DateTime? firstDate;
@@ -544,7 +577,6 @@ class _CameraScreenState extends State<CameraScreen> {
               month = 12;
               break;
             default:
-            // Handle unknown month string
               continue; // Skip processing if month is unknown
           }
 
@@ -552,10 +584,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
           if (day != null && month != null) {
             final expiryDate = DateTime(currentYear, month, day);
-            if (expiryDate.year == currentDate.year && expiryDate.month == currentDate.month) {
-              return 'Expires this month';
-            } else if (expiryDate.isAfter(currentDate)) {
-              return 'Expires on ${expiryDate.toString()}';
+            if (expiryDate.isAfter(currentDate)) {
+              return expiryDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
             } else {
               return 'Expired';
             }
@@ -578,14 +608,13 @@ class _CameraScreenState extends State<CameraScreen> {
     }
 
     if (firstDate != null && secondDate == null) {
-      return 'Expires on ${firstDate.toString()}';
+      return firstDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
     } else if (secondDate != null && (secondDate.isAfter(currentDate) || secondDate.isAtSameMomentAs(currentDate))) {
-      return 'Expires on ${secondDate.toString()}';
+      return secondDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
     } else {
       return 'Expiry date not found';
     }
   }
-
   List<String> _filteredImages() {
     if (_searchQuery.isEmpty) {
       return _imagePaths;
@@ -607,7 +636,6 @@ class _CameraScreenState extends State<CameraScreen> {
 
     return 'Product name not found'; // Return if no keyword is found
   }
-
   @override
   Widget build(BuildContext context) {
     if (_controller == null || !_controller!.value.isInitialized) {
@@ -739,6 +767,15 @@ class _CameraScreenState extends State<CameraScreen> {
               child: ElevatedButton(
                 onPressed: _uploadData,
                 child: const Text('Upload Data'),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                onPressed: _getDetails,
+                child: const Text('All Details'),
               ),
             ),
           ),

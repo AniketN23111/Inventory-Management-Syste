@@ -21,7 +21,7 @@ class DevicePage extends StatelessWidget {
         devices.add('${userData[i][10]} - ${userData[i][11]}');
       }
     }
-
+    devices.sort();
     return Scaffold(
       appBar: AppBar(
         title: Text('Devices for $username'),
