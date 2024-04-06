@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:image_store/User_Authentication/RegistrationForm.dart';
 import 'package:postgres/postgres.dart';
 import 'DevicePage.dart';
-//import 'choosecamerapage.dart'; // Import the page to navigate to after login
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -17,9 +16,8 @@ class LoginPage extends StatelessWidget {
     );
   }
 }
-
 class LoginForm extends StatefulWidget {
-  const LoginForm({super.key});
+  const LoginForm({Key? key}) : super(key: key);
 
   @override
   _LoginFormState createState() => _LoginFormState();
@@ -39,7 +37,8 @@ class _LoginFormState extends State<LoginForm> {
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _isLoggingIn = true; // Set login state to true when login process starts
+        _isLoggingIn =
+        true; // Set login state to true when login process starts
       });
       try {
         // Fetch user credentials from PostgreSQL
@@ -71,7 +70,8 @@ class _LoginFormState extends State<LoginForm> {
         );
       } finally {
         setState(() {
-          _isLoggingIn = false; // Reset login state to false when login process completes
+          _isLoggingIn =
+          false; // Reset login state to false when login process completes
         });
       }
     }
@@ -86,9 +86,31 @@ class _LoginFormState extends State<LoginForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            Text(
+              'Login',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 30.0,
+                color: Color(0xFF1089D3),
+              ),
+            ),
+            SizedBox(height: 20),
             TextFormField(
               controller: _usernameController,
-              decoration: const InputDecoration(labelText: 'Username'),
+              decoration: InputDecoration(
+                labelText: 'Username',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                  borderSide: BorderSide(color: Colors.transparent),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                  borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                ),
+              ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter your username';
@@ -96,9 +118,22 @@ class _LoginFormState extends State<LoginForm> {
                 return null;
               },
             ),
+            SizedBox(height: 15),
             TextFormField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
+              decoration: InputDecoration(
+                labelText: 'Password',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                  borderSide: BorderSide(color: Colors.transparent),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                  borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                ),
+              ),
               obscureText: true,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -107,10 +142,16 @@ class _LoginFormState extends State<LoginForm> {
                 return null;
               },
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             SizedBox(
               width: double.infinity, // Expand the SizedBox to full width
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.0)),
+                  primary: Color(0xFF1089D3),
+                ),
                 onPressed: _isLoggingIn ? null : _login,
                 child: Stack(
                   alignment: Alignment.center,
@@ -128,13 +169,17 @@ class _LoginFormState extends State<LoginForm> {
               ),
             ),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity, // Expand the SizedBox to full width
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationForm()));
+            Center(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(
+                      builder: (context) => RegistrationForm()));
                 },
-                child: const Text('Register'),
+                child:  Text('Register',
+                  style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF0099FF),
+                ),),
               ),
             ),
           ],
@@ -142,6 +187,7 @@ class _LoginFormState extends State<LoginForm> {
       ),
     );
   }
+
 
   @override
   void dispose() {

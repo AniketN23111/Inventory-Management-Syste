@@ -33,7 +33,19 @@ class _RegistrationFormState extends State<RegistrationForm> {
             children: <Widget>[
               TextFormField(
                 controller: _usernameController,
-                decoration: const InputDecoration(labelText: 'Username'),
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                  ),
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your username';
@@ -41,9 +53,22 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   return null;
                 },
               ),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                  ),
+                ),
                 obscureText: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -52,9 +77,22 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   return null;
                 },
               ),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _orgNameController,
-                decoration: const InputDecoration(labelText: 'Organization Name'),
+                decoration: InputDecoration(
+                  labelText: 'Organization Name',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                  ),
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your organization name';
@@ -62,9 +100,22 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   return null;
                 },
               ),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _brandNameController,
-                decoration: const InputDecoration(labelText: 'Brand Name'),
+                decoration: InputDecoration(
+                  labelText: 'Brand Name',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                  ),
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your Brand name';
@@ -80,7 +131,19 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   children: [
                     TextFormField(
                       controller: _deviceControllers[i]['deviceName'],
-                      decoration: const InputDecoration(labelText: 'Device Name'),
+                      decoration: InputDecoration(
+                        labelText: 'Device Name',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                          borderSide: BorderSide(color: Colors.transparent),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                          borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                        ),
+                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter device name';
@@ -88,9 +151,22 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: _deviceControllers[i]['deviceLocation'],
-                      decoration: const InputDecoration(labelText: 'Device Location'),
+                      decoration: InputDecoration(
+                        labelText: 'Device Location',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                          borderSide: BorderSide(color: Colors.transparent),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                          borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                        ),
+                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter device location';
@@ -98,6 +174,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 20),
                     DropdownButtonFormField(
                       value: _deviceControllers[i]['inventoryType'],
                       items: _inventoryTypes.map((type) {
@@ -112,27 +189,60 @@ class _RegistrationFormState extends State<RegistrationForm> {
                               .toString();
                         });
                       },
-                      decoration: const InputDecoration(labelText: 'Inventory Type'),
+                      decoration: InputDecoration(
+                        labelText: 'Inventory Type',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                          borderSide: BorderSide(color: Colors.transparent),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                          borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 20),
                     // Generate camera fields dynamically
-                    for (int j = 0; j <
-                        _deviceControllers[i]['cameraControllers'].length; j++)
-                      TextFormField(
-                        controller: _deviceControllers[i]['cameraControllers'][j],
-                        decoration: InputDecoration(
-                          labelText: 'Camera ${j + 1} Name',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter camera ${j + 1} name';
-                          }
-                          return null;
-                        },
+                    for (int j = 0; j < _deviceControllers[i]['cameraControllers'].length; j++)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextFormField(
+                            controller: _deviceControllers[i]['cameraControllers'][j],
+                            decoration: InputDecoration(
+                              labelText: 'Camera ${j + 1} Name',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20.0),
+                                borderSide: BorderSide(color: Colors.transparent),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20.0),
+                                borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter camera ${j + 1} name';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20), // Add spacing between each camera field
+                        ],
                       ),
                     const SizedBox(height: 20),
                     if (_deviceControllers[i]['cameraControllers'].length < 6)
                       ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 15.0),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20.0)),
+                          primary: Color(0xFF1089D3),
+                        ),
                         onPressed: () {
                           setState(() {
                             _deviceControllers[i]['cameraControllers'].add(
@@ -145,6 +255,12 @@ class _RegistrationFormState extends State<RegistrationForm> {
                 ),
               const SizedBox(height: 20),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.0)),
+                  primary: Color(0xFF1089D3),
+                ),
                 onPressed: () {
                   setState(() {
                     _deviceControllers.add({
@@ -159,6 +275,12 @@ class _RegistrationFormState extends State<RegistrationForm> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.0)),
+                  primary: Color(0xFF1089D3),
+                ),
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     bool isRegistered = await registerUser(
