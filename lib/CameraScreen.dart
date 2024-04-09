@@ -520,6 +520,7 @@ class _CameraScreenState extends State<CameraScreen> {
       r'(\d{1,2}[./-]\d{4})\b',
       r'\bBest\s*Before:\s*([A-Z]+)\s*/\s*(\d{1,2})\b',
       r'(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b', // Added pattern for "Best Before:FEB/25"
+      r'(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})\b', // Pattern for "30JUL24"
     ];
 
     DateTime? firstDate;
@@ -531,72 +532,69 @@ class _CameraScreenState extends State<CameraScreen> {
       final matches = regex.allMatches(extractedText);
 
       for (final match in matches) {
-        if (pattern.contains('Best Before')) {
-          final monthString = match.group(1);
-          final dayString = match.group(2);
+        final dateString = match.group(0)!;
 
-          final currentDate = DateTime.now();
-          final currentYear = currentDate.year;
-
-          int month = 1;
-          switch (monthString) {
-            case 'JAN':
-              month = 1;
-              break;
-            case 'FEB':
-              month = 2;
-              break;
-            case 'MAR':
-              month = 3;
-              break;
-            case 'APR':
-              month = 4;
-              break;
-            case 'MAY':
-              month = 5;
-              break;
-            case 'JUN':
-              month = 6;
-              break;
-            case 'JUL':
-              month = 7;
-              break;
-            case 'AUG':
-              month = 8;
-              break;
-            case 'SEP':
-              month = 9;
-              break;
-            case 'OCT':
-              month = 10;
-              break;
-            case 'NOV':
-              month = 11;
-              break;
-            case 'DEC':
-              month = 12;
-              break;
-            default:
-              continue; // Skip processing if month is unknown
-          }
-
-          final day = int.tryParse(dayString!);
-
-          if (day != null && month != null) {
-            final expiryDate = DateTime(currentYear, month, day);
-            if (expiryDate.isAfter(currentDate)) {
-              return expiryDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
-            } else {
-              return 'Expired';
-            }
-          }
-        } else {
-          final dateString = match.group(1)!;
-          final parts = dateString.split(RegExp(r'[-/\\]'));
+        if (dateString.contains(RegExp(r'\d{2}/\d{4}'))) {
+          // Handling MM/YYYY format separately
+          final parts = dateString.split('/');
           final month = int.tryParse(parts[0]);
           final year = int.tryParse(parts[1]);
-          if (month != null && year != null && year >= 1000) {
+          if (month != null && year != null && year >= 0 && year <= 9999) {
             final date = DateTime(year, month);
+            if (firstDate == null) {
+              firstDate = date;
+            } else if (secondDate == null || date.isAfter(secondDate)) {
+              secondDate = date;
+            }
+          }
+        }  else {
+          final dateString = match.group(0)!;
+          final day = int.tryParse(dateString.substring(0, 2));
+          final monthString = dateString.substring(2, 5);
+          final year = int.tryParse(dateString.substring(5, 7));
+          if (day != null && year != null && year >= 0 && year <= 99) {
+            final month;
+            switch (monthString) {
+              case 'JAN':
+                month = 1;
+                break;
+              case 'FEB':
+                month = 2;
+                break;
+              case 'MAR':
+                month = 3;
+                break;
+              case 'APR':
+                month = 4;
+                break;
+              case 'MAY':
+                month = 5;
+                break;
+              case 'JUN':
+                month = 6;
+                break;
+              case 'JUL':
+                month = 7;
+                break;
+              case 'AUG':
+                month = 8;
+                break;
+              case 'SEP':
+                month = 9;
+                break;
+              case 'OCT':
+                month = 10;
+                break;
+              case 'NOV':
+                month = 11;
+                break;
+              case 'DEC':
+                month = 12;
+                break;
+              default:
+                continue;
+            }
+            final date = DateTime(year + 2000, month, day);
             if (firstDate == null) {
               firstDate = date;
             } else if (secondDate == null || date.isAfter(secondDate)) {
@@ -624,17 +622,18 @@ class _CameraScreenState extends State<CameraScreen> {
   }
   String _extractProductName(String extractedText) {
     // Define keywords that indicate the start of the product name
-    final productNameKeywords = ['PONDS DREAMFLOWER', 'PRODUCT NAME:', 'Tacrolimus Ointment'];
+    final productNameKeywords = ['PONDS DREAMFLOWER', 'PRODUCT NAME:', 'Tacrolimus Ointment','BALAJI\nWAFERS\nCRUNCHEM\nSimply Salted'];
 
     // Iterate through each keyword to find the product name
     for (final keyword in productNameKeywords) {
       final startIndex = extractedText.indexOf(keyword);
       if (startIndex != -1) {
-        return keyword; // Return the matching keyword as the product name
+        final formattedProductName = keyword.replaceAll('\n', ' ');
+        return formattedProductName;
       }
     }
 
-    return 'Product name not found'; // Return if no keyword is found
+    return ''; // Return if no keyword is found
   }
   @override
   Widget build(BuildContext context) {
