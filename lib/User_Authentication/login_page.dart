@@ -147,10 +147,9 @@ class _LoginFormState extends State<LoginForm> {
               width: double.infinity, // Expand the SizedBox to full width
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  padding: EdgeInsets.symmetric(vertical: 15.0), backgroundColor: Color(0xFF1089D3),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0)),
-                  primary: Color(0xFF1089D3),
                 ),
                 onPressed: _isLoggingIn ? null : _login,
                 child: Stack(

@@ -238,10 +238,9 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     if (_deviceControllers[i]['cameraControllers'].length < 6)
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 15.0),
+                          padding: EdgeInsets.symmetric(vertical: 15.0), backgroundColor: Color(0xFF1089D3),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20.0)),
-                          primary: Color(0xFF1089D3),
                         ),
                         onPressed: () {
                           setState(() {
@@ -256,10 +255,9 @@ class _RegistrationFormState extends State<RegistrationForm> {
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  padding: EdgeInsets.symmetric(vertical: 15.0), backgroundColor: Color(0xFF1089D3),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0)),
-                  primary: Color(0xFF1089D3),
                 ),
                 onPressed: () {
                   setState(() {
@@ -276,10 +274,9 @@ class _RegistrationFormState extends State<RegistrationForm> {
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  padding: EdgeInsets.symmetric(vertical: 15.0), backgroundColor: Color(0xFF1089D3),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0)),
-                  primary: Color(0xFF1089D3),
                 ),
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {

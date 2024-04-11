@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class AllProductDetails extends StatefulWidget {
   final List<Map<String, dynamic>> productDetailsList;
@@ -115,6 +116,53 @@ class _AllProductDetailsState extends State<AllProductDetails> {
               ),
             ),
           ),
+          SizedBox(height: 20),
+          _buildBarGraph(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBarGraph() {
+    // Create a map to store aggregated totals for each month
+    Map<String, int> inwardTotals = {};
+    Map<String, int> outwardTotals = {};
+
+    // Aggregate inward and outward quantities for each month
+    _filteredProductDetailsList.forEach((productDetails) {
+      String month = DateFormat('yyyy-MM').format(productDetails['date']);
+      int inward = productDetails['inward'] ?? 0;
+      int outward = productDetails['outward'] ?? 0;
+
+      // Increment the inward and outward totals for the month
+      inwardTotals.update(month, (value) => value + inward, ifAbsent: () => inward);
+      outwardTotals.update(month, (value) => value + outward, ifAbsent: () => outward);
+    });
+
+    // Prepare the data for the bar graph
+    List<String> months = inwardTotals.keys.toList();
+
+    return Container(
+      height: 300,
+      padding: EdgeInsets.all(10),
+      child: SfCartesianChart(
+        primaryXAxis: CategoryAxis(),
+        primaryYAxis: NumericAxis(
+          title: AxisTitle(text: 'Quantity'),
+        ),
+        series: <CartesianSeries>[
+          ColumnSeries<String, String>(
+            dataSource: months,
+            xValueMapper: (String month, _) => month,
+            yValueMapper: (String month, _) => inwardTotals[month]!, // Use inward totals as y-values
+            name: 'Inward',
+          ),
+          ColumnSeries<String, String>(
+            dataSource: months,
+            xValueMapper: (String month, _) => month,
+            yValueMapper: (String month, _) => outwardTotals[month]!, // Use outward totals as y-values
+            name: 'Outward',
+          ),
         ],
       ),
     );
@@ -176,10 +224,11 @@ class _AllProductDetailsState extends State<AllProductDetails> {
                     initialDate: DateTime.now(),
                     firstDate: DateTime(2000),
                     lastDate: DateTime(2101),
+                    initialDatePickerMode: DatePickerMode.day,
                   );
                   if (pickedDate != null) {
                     setState(() {
-                      _startDateController.text = pickedDate.toString();
+                      _startDateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
                     });
                   }
                 },
@@ -195,10 +244,11 @@ class _AllProductDetailsState extends State<AllProductDetails> {
                     initialDate: DateTime.now(),
                     firstDate: DateTime(2000),
                     lastDate: DateTime(2101),
+                    initialDatePickerMode: DatePickerMode.day,
                   );
                   if (pickedDate != null) {
                     setState(() {
-                      _endDateController.text = pickedDate.toString();
+                      _endDateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
                     });
                   }
                 },
