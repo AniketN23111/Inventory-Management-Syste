@@ -58,6 +58,8 @@ class _CameraScreenState extends State<CameraScreen> {
   String product_name='';
   List<String> _filteredProducts = [];
   late DateTime _selectedDate;
+  TextEditingController _timerController = TextEditingController();
+  int _timerSeconds = 10;
   @override
   void initState() {
     super.initState();
@@ -67,11 +69,14 @@ class _CameraScreenState extends State<CameraScreen> {
     rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((json){
       api=CloudApi(json);
     });
-    _captureTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      //_takePictureAndUpload();
-    });
+    _startTimer();
     _getLocation();
     _postgraseconnection();
+  }
+  void _startTimer() {
+    _captureTimer = Timer.periodic(Duration(seconds: _timerSeconds), (timer) {
+      _takePictureAndUpload();
+    });
   }
   Future<void> _postgraseconnection() async {
     try {
@@ -176,7 +181,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 .difference(latestCaptureTime)
                 .inSeconds;
 
-            if (timeDifference <= 9) {
+            if (timeDifference <= _timerSeconds - 1) {
               // Reuse the group ID if the time difference is within 10 seconds
               _groupId = latestGroupId;
             } else {
@@ -700,6 +705,42 @@ class _CameraScreenState extends State<CameraScreen> {
                       },
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.timer),
+                    onPressed: () {
+                      _timerController.text = _timerSeconds.toString();
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('Set Timer (seconds)'),
+                            content: TextField(
+                              controller: _timerController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Timer duration',
+                              ),
+                            ),
+                            actions: <Widget>[
+                              TextButton(
+                                onPressed: () {
+                                  final userInput = _timerController.text;
+                                  setState(() {
+                                    _timerSeconds = userInput.isNotEmpty ? int.parse(userInput) : 10;
+                                    _captureTimer?.cancel(); // Cancel the existing timer
+                                    _startTimer();
+                                  });
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text('Set'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+
                   IconButton(
                     icon: const Icon(Icons.search),
                     onPressed: () async {
