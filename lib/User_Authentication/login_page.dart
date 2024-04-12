@@ -10,7 +10,7 @@ class LoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(''),
+        title: const Text(''),
       ),
       body: const LoginForm(), // Display the login form
     );
@@ -20,6 +20,7 @@ class LoginForm extends StatefulWidget {
   const LoginForm({Key? key}) : super(key: key);
 
   @override
+  // ignore: library_private_types_in_public_api
   _LoginFormState createState() => _LoginFormState();
 }
 
@@ -53,18 +54,22 @@ class _LoginFormState extends State<LoginForm> {
 
           // Navigate to the page where the user can choose a Device
           Navigator.pushReplacement(
+            // ignore: use_build_context_synchronously
             context,
             MaterialPageRoute(builder: (context) => DevicePage(userData!)),
           );
         } else {
           // Show error message for invalid credentials
+          // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Invalid username or password')),
           );
         }
       } catch (e) {
         // Handle errors
+        // ignore: avoid_print
         print('Login failed: $e');
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login failed. Please try again.')),
         );
@@ -86,7 +91,7 @@ class _LoginFormState extends State<LoginForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Text(
+            const Text(
               'Login',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -95,7 +100,7 @@ class _LoginFormState extends State<LoginForm> {
                 color: Color(0xFF1089D3),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextFormField(
               controller: _usernameController,
               decoration: InputDecoration(
@@ -104,11 +109,11 @@ class _LoginFormState extends State<LoginForm> {
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20.0),
-                  borderSide: BorderSide(color: Colors.transparent),
+                  borderSide: const BorderSide(color: Colors.transparent),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20.0),
-                  borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                  borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                 ),
               ),
               validator: (value) {
@@ -118,7 +123,7 @@ class _LoginFormState extends State<LoginForm> {
                 return null;
               },
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
             TextFormField(
               controller: _passwordController,
               decoration: InputDecoration(
@@ -127,11 +132,11 @@ class _LoginFormState extends State<LoginForm> {
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20.0),
-                  borderSide: BorderSide(color: Colors.transparent),
+                  borderSide: const BorderSide(color: Colors.transparent),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20.0),
-                  borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                  borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                 ),
               ),
               obscureText: true,
@@ -142,12 +147,12 @@ class _LoginFormState extends State<LoginForm> {
                 return null;
               },
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity, // Expand the SizedBox to full width
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15.0), backgroundColor: Color(0xFF1089D3),
+                  padding: const EdgeInsets.symmetric(vertical: 15.0), backgroundColor: const Color(0xFF1089D3),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0)),
                 ),
@@ -172,9 +177,9 @@ class _LoginFormState extends State<LoginForm> {
               child: GestureDetector(
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(
-                      builder: (context) => RegistrationForm()));
+                      builder: (context) => const RegistrationForm()));
                 },
-                child:  Text('Register',
+                child:  const Text('Register',
                   style: TextStyle(
                   fontSize: 16,
                   color: Color(0xFF0099FF),
@@ -217,7 +222,7 @@ class _LoginFormState extends State<LoginForm> {
       await connection.close();
       return result.isNotEmpty;
     } catch (e) {
-      print('Error fetching user credentials: $e');
+      //print('Error fetching user credentials: $e');
       return false;
     }
   }
@@ -244,7 +249,7 @@ class _LoginFormState extends State<LoginForm> {
       await connection.close();
       return result;
     } catch (e) {
-      print('Error fetching user data: $e');
+      //print('Error fetching user data: $e');
       return [];
     }
   }

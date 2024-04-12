@@ -54,17 +54,17 @@ class ChooseCameraPage extends StatelessWidget {
     String organizationName = getOrganizationNameFromSelectedDevice();
 
     // Concatenate device name, organization name, and inventory type for the app bar title and text widget
-    String appBarTitle = '$selectedDevice - $organizationName - $brandName - $inventoryType';
+    //String appBarTitle = '$selectedDevice - $organizationName - $brandName - $inventoryType';
     String textWidgetText = 'Cameras for $selectedDevice - $inventoryType:';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(''),
+        title: const Text(''),
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
-          Center(
+          const Center(
             child: Text(
               'Cameras',
               textAlign: TextAlign.center,

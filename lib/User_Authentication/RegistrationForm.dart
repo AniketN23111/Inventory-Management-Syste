@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:postgres/postgres.dart';
 import 'package:image_store/User_Authentication/login_page.dart';
@@ -6,6 +7,7 @@ class RegistrationForm extends StatefulWidget {
   const RegistrationForm({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _RegistrationFormState createState() => _RegistrationFormState();
 }
 
@@ -23,7 +25,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(''),
+        title: const Text(''),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -31,7 +33,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
           key: _formKey,
           child: ListView(
             children: <Widget>[
-              Text(
+              const Text(
                 'Registration',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -48,11 +50,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
-                    borderSide: BorderSide(color: Colors.transparent),
+                    borderSide: const BorderSide(color: Colors.transparent),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
-                    borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                    borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                   ),
                 ),
                 validator: (value) {
@@ -71,11 +73,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
-                    borderSide: BorderSide(color: Colors.transparent),
+                    borderSide: const BorderSide(color: Colors.transparent),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
-                    borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                    borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                   ),
                 ),
                 obscureText: true,
@@ -95,11 +97,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
-                    borderSide: BorderSide(color: Colors.transparent),
+                    borderSide: const BorderSide(color: Colors.transparent),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
-                    borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                    borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                   ),
                 ),
                 validator: (value) {
@@ -118,11 +120,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
-                    borderSide: BorderSide(color: Colors.transparent),
+                    borderSide: const BorderSide(color: Colors.transparent),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
-                    borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                    borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                   ),
                 ),
                 validator: (value) {
@@ -146,11 +148,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20.0),
-                          borderSide: BorderSide(color: Colors.transparent),
+                          borderSide: const BorderSide(color: Colors.transparent),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20.0),
-                          borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                          borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                         ),
                       ),
                       validator: (value) {
@@ -169,11 +171,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20.0),
-                          borderSide: BorderSide(color: Colors.transparent),
+                          borderSide: const BorderSide(color: Colors.transparent),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20.0),
-                          borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                          borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                         ),
                       ),
                       validator: (value) {
@@ -204,11 +206,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20.0),
-                          borderSide: BorderSide(color: Colors.transparent),
+                          borderSide: const BorderSide(color: Colors.transparent),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20.0),
-                          borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                          borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                         ),
                       ),
                     ),
@@ -226,11 +228,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
                               fillColor: Colors.white,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(20.0),
-                                borderSide: BorderSide(color: Colors.transparent),
+                                borderSide: const BorderSide(color: Colors.transparent),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(20.0),
-                                borderSide: BorderSide(color: Color(0xFF12B1D1)),
+                                borderSide: const BorderSide(color: Color(0xFF12B1D1)),
                               ),
                             ),
                             validator: (value) {
@@ -247,7 +249,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     if (_deviceControllers[i]['cameraControllers'].length < 6)
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 15.0), backgroundColor: Color(0xFF1089D3),
+                          padding: const EdgeInsets.symmetric(vertical: 15.0), backgroundColor: const Color(0xFF1089D3),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20.0)),
                         ),
@@ -264,7 +266,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15.0), backgroundColor: Color(0xFF1089D3),
+                  padding: const EdgeInsets.symmetric(vertical: 15.0), backgroundColor: const Color(0xFF1089D3),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0)),
                 ),
@@ -283,7 +285,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15.0), backgroundColor: Color(0xFF1089D3),
+                  padding: const EdgeInsets.symmetric(vertical: 15.0), backgroundColor: const Color(0xFF1089D3),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0)),
                 ),
@@ -298,10 +300,12 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     );
                     if (isRegistered) {
                       Navigator.pushReplacement(
+                        // ignore: use_build_context_synchronously
                         context,
                         MaterialPageRoute(builder: (context) => const LoginPage()),
                       );
                     } else {
+                      // ignore: use_build_context_synchronously
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text(
                             'Registration failed. Please try again.')),
@@ -369,14 +373,16 @@ class _RegistrationFormState extends State<RegistrationForm> {
            cameraNames.length > i ? cameraNames[i] : '',
           ],
         );
-        print(result);
+        if (kDebugMode) {
+          print(result);
+        }
       }
 
       await connection.close();
 
       return true;
     } catch (e) {
-      print('Error registering user: $e');
+      //print('Error registering user: $e');
       return false;
     }
   }

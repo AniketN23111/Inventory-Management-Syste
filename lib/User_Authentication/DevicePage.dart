@@ -24,13 +24,13 @@ class DevicePage extends StatelessWidget {
     devices.sort();
     return Scaffold(
       appBar: AppBar(
-        title: Text(''),
+        title: const Text(''),
       ),
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Center(
+            const Center(
               child: Text(
                 'Devices',
                 textAlign: TextAlign.center,
