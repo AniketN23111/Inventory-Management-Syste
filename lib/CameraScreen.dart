@@ -727,7 +727,7 @@ class _CameraScreenState extends State<CameraScreen> {
                                   final userInput = _timerController.text;
                                   setState(() {
                                     _timerSeconds = userInput.isNotEmpty ? int.parse(userInput) : 10;
-                                    _captureTimer?.cancel(); // Cancel the existing timer
+                                    _captureTimer.cancel(); // Cancel the existing timer
                                     _startTimer();
                                   });
                                   Navigator.of(context).pop();
