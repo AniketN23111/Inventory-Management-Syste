@@ -59,11 +59,22 @@ class ChooseCameraPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(appBarTitle),
+        title: Text(''),
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
+          Center(
+            child: Text(
+              'Cameras',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 30.0,
+                color: Color(0xFF1089D3),
+              ),
+            ),
+          ),
           Text(
             'Organization Name: $organizationName',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

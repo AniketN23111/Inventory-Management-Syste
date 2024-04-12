@@ -24,24 +24,39 @@ class DevicePage extends StatelessWidget {
     devices.sort();
     return Scaffold(
       appBar: AppBar(
-        title: Text('Devices for $username'),
+        title: Text(''),
       ),
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            Center(
+              child: Text(
+                'Devices',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 30.0,
+                  color: Color(0xFF1089D3),
+                ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Organization Name: $organizationName',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Center(
+                    child: Text(
+                      'Organization Name: $organizationName',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  Text(
-                    'Brand Name: $brandName',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Center(
+                    child: Text(
+                      'Brand Name: $brandName',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),

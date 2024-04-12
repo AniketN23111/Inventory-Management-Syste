@@ -23,7 +23,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Registration'),
+        title: Text(''),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -31,6 +31,15 @@ class _RegistrationFormState extends State<RegistrationForm> {
           key: _formKey,
           child: ListView(
             children: <Widget>[
+              Text(
+                'Registration',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 30.0,
+                  color: Color(0xFF1089D3),
+                ),
+              ),
               TextFormField(
                 controller: _usernameController,
                 decoration: InputDecoration(
@@ -269,7 +278,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     });
                   });
                 },
-                child: const Text('Add Device'),
+                child: const Text('Add Device',style: TextStyle(color: Colors.white)),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -300,7 +309,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     }
                   }
                 },
-                child: const Text('Register'),
+                child: const Text('Register',style: TextStyle(color: Colors.white)),
               ),
             ],
           ),

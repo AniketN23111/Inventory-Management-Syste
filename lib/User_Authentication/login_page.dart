@@ -10,7 +10,7 @@ class LoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login'),
+        title: Text(''),
       ),
       body: const LoginForm(), // Display the login form
     );
@@ -162,7 +162,7 @@ class _LoginFormState extends State<LoginForm> {
                         strokeWidth: 2, // Adjust the stroke width of the progress indicator
                       ),
                     ), // Show progress indicator when login is in progress
-                    const Text('Login'),
+                    const Text('Login',style: TextStyle(color: Colors.white)),
                   ],
                 ),
               ),
