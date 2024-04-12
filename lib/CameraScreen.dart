@@ -306,7 +306,7 @@ class _CameraScreenState extends State<CameraScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ProductDetailsPage(
+        builder: (context) => productDetailsPage(
           productDetailsList: productDetails,
           username: widget.username, // Pass the username
           userData: widget.userData,
@@ -359,7 +359,7 @@ class _CameraScreenState extends State<CameraScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => InventoryDetailsPage(inventoryData: inventoryData),
+          builder: (context) => inventoryDetailsPage(inventoryData: inventoryData),
         ),
       );
     } catch (e) {

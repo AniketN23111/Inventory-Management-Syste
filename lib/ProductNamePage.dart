@@ -11,7 +11,7 @@ class ProductNamePage extends StatelessWidget {
       body: Center(
         child: Text(
           'This page displays details about the product: $productName',
-          style: TextStyle(fontSize: 18),
+          style: const TextStyle(fontSize: 18),
         ),
       ),
     );

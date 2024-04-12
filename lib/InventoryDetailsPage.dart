@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'ProductDetailsPage.dart'; // Import the ProductDetailsPage
 
-class InventoryDetailsPage extends StatelessWidget {
+// ignore: camel_case_types
+class inventoryDetailsPage extends StatelessWidget {
   final List<dynamic>? inventoryData;
 
-  const InventoryDetailsPage({Key? key, required this.inventoryData}) : super(key: key);
+  const inventoryDetailsPage({Key? key, required this.inventoryData}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Inventory Details'),
+        title: const Text('Inventory Details'),
       ),
       body: ListView.builder(
         itemCount: inventoryData?.length ?? 0,
@@ -18,9 +18,9 @@ class InventoryDetailsPage extends StatelessWidget {
           final item = inventoryData![index];
 
           // Check if item is null or not in the expected format
-          if (item == null || !(item is Map<String, dynamic>)) {
+          if (item == null || item is! Map<String, dynamic>) {
             // Handle invalid or unexpected data
-            return ListTile(
+            return const ListTile(
               title: Text('Invalid Data'),
             );
           }
@@ -33,10 +33,11 @@ class InventoryDetailsPage extends StatelessWidget {
           // Check if itemName, inward, and outward are null or not in the expected format
           if (itemName == null || inward == null || outward == null) {
             // Handle invalid or unexpected data
-            return ListTile(
+            return const ListTile(
               title: Text('Invalid Data'),
             );
           }
+          return null;
 
           // Navigate to ProductDetailsPage when tapping on ListTile
         /*  return GestureDetector(

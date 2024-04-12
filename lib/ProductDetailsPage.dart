@@ -4,12 +4,13 @@ import 'package:postgres/postgres.dart';
 
 import 'ProductNamePage.dart';
 
-class ProductDetailsPage extends StatelessWidget {
+// ignore: camel_case_types
+class productDetailsPage extends StatelessWidget {
   final List<Map<String, dynamic>> productDetailsList;
   final String username;
   final List<List<dynamic>> userData;
 
-  const ProductDetailsPage({
+  const productDetailsPage({
     Key? key,
     required this.productDetailsList,
     required this.username,
@@ -24,7 +25,7 @@ class ProductDetailsPage extends StatelessWidget {
         future: fetchProductDetails(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else {
@@ -37,7 +38,7 @@ class ProductDetailsPage extends StatelessWidget {
 
   Future<void> fetchProductDetails() async {
     // Simulate fetching product details asynchronously
-    await Future.delayed(Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 2));
   }
 
   Widget buildProductDetails(BuildContext context) {
@@ -71,7 +72,7 @@ class ProductDetailsPage extends StatelessWidget {
       future: Future.wait(locationFutures),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         } else {
@@ -189,7 +190,6 @@ class ProductDetailsPage extends StatelessWidget {
         return 'Location not found';
       }
     } catch (e) {
-      print('Error fetching location: $e');
       return 'Error fetching location';
     }
   }
