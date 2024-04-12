@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -472,7 +473,9 @@ class _CameraScreenState extends State<CameraScreen> {
           'UPDATE ai.inventory_inward_outward SET outward= outward + 1,outward_device = \$1 WHERE item_name = \$2 AND expiry_date = \$3 AND outward_device = \$4 AND username = \$5 AND date = \$6',
           parameters: [widget.selectedDevice, itemName, expiryDate, widget.selectedDevice, username, currentDate],
         );
-        print('Outward record updated for $itemName on $currentDate');
+        if (kDebugMode) {
+          print('Outward record updated for $itemName on $currentDate');
+        }
       } else {
         // Record does not exist, insert a new entry with outward
         await conn?.execute(
@@ -720,7 +723,6 @@ class _CameraScreenState extends State<CameraScreen> {
                           _selectedDate = selectedDate;
                         });
                         String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
-                        print(formattedDate); // Print formatted date
                         _searchInventoryByDate(formattedDate);
                       }
                     },
