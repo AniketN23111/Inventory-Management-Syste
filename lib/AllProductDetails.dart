@@ -11,14 +11,15 @@ class AllProductDetails extends StatefulWidget {
   }) : super(key: key);
 
   @override
+  // ignore: library_private_types_in_public_api
   _AllProductDetailsState createState() => _AllProductDetailsState();
 }
 
 class _AllProductDetailsState extends State<AllProductDetails> {
   late List<Map<String, dynamic>> _filteredProductDetailsList;
-  TextEditingController _searchController = TextEditingController();
-  TextEditingController _startDateController = TextEditingController();
-  TextEditingController _endDateController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _startDateController = TextEditingController();
+  final TextEditingController _endDateController = TextEditingController();
   String _selectedFilter = 'Alphabetical'; // Default filter
 
   @override
@@ -31,7 +32,7 @@ class _AllProductDetailsState extends State<AllProductDetails> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('All Product Details'),
+        title: const Text('All Product Details'),
       ),
       body: Column(
         children: [
@@ -45,18 +46,18 @@ class _AllProductDetailsState extends State<AllProductDetails> {
                     onChanged: (value) {
                       _filterList(value);
                     },
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Search',
                       border: OutlineInputBorder(),
                     ),
                   ),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: () {
                     _filterByDate();
                   },
-                  child: Text('Filter by Date'),
+                  child: const Text('Filter by Date'),
                 ),
               ],
             ),
@@ -85,7 +86,7 @@ class _AllProductDetailsState extends State<AllProductDetails> {
               scrollDirection: Axis.horizontal,
               child: SingleChildScrollView(
                 child: DataTable(
-                  columns: [
+                  columns: const [
                     DataColumn(label: Text('Product Name')),
                     DataColumn(label: Text('Date')),
                     DataColumn(label: Text('Device')),
@@ -116,7 +117,7 @@ class _AllProductDetailsState extends State<AllProductDetails> {
               ),
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           _buildBarGraph(),
         ],
       ),
@@ -129,7 +130,7 @@ class _AllProductDetailsState extends State<AllProductDetails> {
     Map<String, int> outwardTotals = {};
 
     // Aggregate inward and outward quantities for each month
-    _filteredProductDetailsList.forEach((productDetails) {
+    for (var productDetails in _filteredProductDetailsList) {
       String month = DateFormat('yyyy-MM').format(productDetails['date']);
       int inward = productDetails['inward'] ?? 0;
       int outward = productDetails['outward'] ?? 0;
@@ -137,17 +138,17 @@ class _AllProductDetailsState extends State<AllProductDetails> {
       // Increment the inward and outward totals for the month
       inwardTotals.update(month, (value) => value + inward, ifAbsent: () => inward);
       outwardTotals.update(month, (value) => value + outward, ifAbsent: () => outward);
-    });
+    }
 
     // Prepare the data for the bar graph
     List<String> months = inwardTotals.keys.toList();
 
     return Container(
       height: 300,
-      padding: EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       child: SfCartesianChart(
-        primaryXAxis: CategoryAxis(),
-        primaryYAxis: NumericAxis(
+        primaryXAxis: const CategoryAxis(),
+        primaryYAxis: const NumericAxis(
           title: AxisTitle(text: 'Quantity'),
         ),
         series: <CartesianSeries>[
@@ -210,13 +211,13 @@ class _AllProductDetailsState extends State<AllProductDetails> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Filter by Date'),
+          title: const Text('Filter by Date'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
                 controller: _startDateController,
-                decoration: InputDecoration(labelText: 'Start Date'),
+                decoration: const InputDecoration(labelText: 'Start Date'),
                 keyboardType: TextInputType.datetime,
                 onTap: () async {
                   DateTime? pickedDate = await showDatePicker(
@@ -233,10 +234,10 @@ class _AllProductDetailsState extends State<AllProductDetails> {
                   }
                 },
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextFormField(
                 controller: _endDateController,
-                decoration: InputDecoration(labelText: 'End Date'),
+                decoration: const InputDecoration(labelText: 'End Date'),
                 keyboardType: TextInputType.datetime,
                 onTap: () async {
                   DateTime? pickedDate = await showDatePicker(
@@ -260,14 +261,14 @@ class _AllProductDetailsState extends State<AllProductDetails> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
                 _applyDateFilter();
                 Navigator.of(context).pop();
               },
-              child: Text('Apply'),
+              child: const Text('Apply'),
             ),
           ],
         );
