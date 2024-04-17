@@ -69,8 +69,6 @@ class _CameraScreenState extends State<CameraScreen> {
     rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((json){
       api=CloudApi(json);
     });
-    _startTimer();
-    _getLocation();
     _postgraseconnection();
   }
   void _startTimer() {
@@ -219,12 +217,12 @@ class _CameraScreenState extends State<CameraScreen> {
         print(extractedText);
         _ingrediants = _extractIngredients(extractedText.toString());
         _expirydate = _extractExpiryDate(extractedText.toString());
-        final productName = _extractProductName(extractedText);
+        product_name= _extractProductName(extractedText.toString());
         print("Ingredients:- $_ingrediants");
         print("Expiry Date:- $_expirydate");
-        print('Product Name: $productName');
+        print('Product Name: $product_name');
       }
-      //_uploadData();
+      _uploadData();
     } catch (e) {
       print(e);
     }
@@ -243,16 +241,6 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _getLocation() async {
-    try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      setState(() {
-        _currentPosition = position;
-      });
-    } catch (e) {
-      print("Error getting location: $e");
-    }
-  }
 
   Future<List<String>> _searchProduct(String query) async {
     final Set<String> uniqueProducts = {}; // Use a set to store unique product names
@@ -403,8 +391,14 @@ class _CameraScreenState extends State<CameraScreen> {
       if (productName.isNotEmpty && expiryDate.isNotEmpty && expiryDate != 'Expiry date not found') {
         // Store the data in the "inventory" table
         await _insertDataIntoInventory(productName,expiryDate,groupid,brandname);
+        const snackBar = SnackBar(content: Text('Data stored in inventory table.'),
+        backgroundColor: Colors.green);
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
         print('Data stored in inventory table: $productName, $expiryDate');
       } else {
+        const snackBar = SnackBar(content: Text('Product name or expiry date is null or invalid, data not stored in inventory table.'),
+        backgroundColor: Colors.red);
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
         print('Product name or expiry date is null or invalid, data not stored in inventory table.');
       }
 
@@ -630,18 +624,19 @@ class _CameraScreenState extends State<CameraScreen> {
   }
   String _extractProductName(String extractedText) {
     // Define keywords that indicate the start of the product name
-    final productNameKeywords = ['PONDS DREAMFLOWER', 'PRODUCT NAME:', 'Tacrolimus Ointment','BALAJI\nWAFERS\nCRUNCHEM\nSimply Salted'];
+    final productNameKeywords = ['PONDS DREAMFLOWER', 'PRODUCT NAME:', 'Tacrolimus Ointment','BALAJI\nWAFERS\nCRUNCHEM\nSimply Salted','BALAJI\nWAFERS\nCRUNCHEM\nMASALA MASTI','BALAJI'];
 
     // Iterate through each keyword to find the product name
     for (final keyword in productNameKeywords) {
       final startIndex = extractedText.indexOf(keyword);
       if (startIndex != -1) {
         final formattedProductName = keyword.replaceAll('\n', ' ');
+        product_name = formattedProductName.toString();
         return formattedProductName;
       }
     }
 
-    return ''; // Return if no keyword is found
+    return 'Product Not Found'; // Return if no keyword is found
   }
   @override
   Widget build(BuildContext context) {
