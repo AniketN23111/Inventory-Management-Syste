@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -15,12 +16,12 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:postgres/postgres.dart';
 import 'package:image/image.dart' as img;
-import 'package:intl/intl.dart';
+import 'package:string_similarity/string_similarity.dart';
 
 import 'AddDevicePage.dart';
 import 'EditDevicePage.dart';
-import 'InventoryDetailsPage.dart';
 import 'ProductDetailsPage.dart';
+
 
 class CameraScreen extends StatefulWidget {
   final String deviceName; // Accept device name as a parameter
@@ -42,70 +43,82 @@ class _CameraScreenState extends State<CameraScreen> {
   String? _latestImagePath;
   late DateTime? _latestImageTimestamp;
   late Timer _captureTimer;
- // late String _deviceInfo=widget.selectedDevice.toString();
+
+  // late String _deviceInfo=widget.selectedDevice.toString();
   Position? _currentPosition;
   late String imagename;
+
   //late Uint8List _imgebytes;
   late CloudApi api;
   late Connection? conn;
   String _searchQuery = '';
   String _detectedText = '';
-  String _expirydate='';
-  List<String> _ingrediants=[];
+  String _expirydate = '';
+  List<String> _ingrediants = [];
   late String _groupId;
-  late String _inventoryType=widget.inventoryType.toString();
-  int remaining=0;
-  String product_name='';
+  late String _inventoryType = widget.inventoryType.toString();
+  int remaining = 0;
+  String product_name = '';
   List<String> _filteredProducts = [];
   late DateTime _selectedDate;
   TextEditingController _timerController = TextEditingController();
   int _timerSeconds = 10;
+  List<String> _productNames = [];
+
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
-      _initializeCamera();
+    _initializeCamera();
     _groupId = '';
-    rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((json){
-      api=CloudApi(json);
+    rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json').then((
+        json) {
+      api = CloudApi(json);
     });
     _postgraseconnection();
   }
+
   void _startTimer() {
     _captureTimer = Timer.periodic(Duration(seconds: _timerSeconds), (timer) {
       _takePictureAndUpload();
     });
   }
+//Postgres Connection
   Future<void> _postgraseconnection() async {
     try {
-       conn = await Connection.open(
+      conn = await Connection.open(
         Endpoint(
             host: '34.71.87.187',
-            port:5432,
+            port: 5432,
             database: 'airegulation_dev',
             username: 'postgres',
             password: 'India@5555'
         ),
-        settings : const ConnectionSettings(sslMode: SslMode.disable),
+        settings: const ConnectionSettings(sslMode: SslMode.disable),
       );
       print("Connected successfully");
       print(widget.username);
       print(widget.brandName);
+      await _retrieveProductNames();
     }
-    catch(e)
-    {
+    catch (e) {
       print(e);
     }
   }
+//Generate Group ID
   String generateGroupId() {
     // Generate group id based on device name and timestamp
-    return '${widget.username}_${widget.selectedDevice}_${DateTime.now().millisecondsSinceEpoch}';
+    return '${widget.username}_${widget.selectedDevice}_${DateTime
+        .now()
+        .millisecondsSinceEpoch}';
   }
+//Initialize Camera
   Future<void> _initializeCamera() async {
     _cameras = await availableCameras();
     if (_cameras.isNotEmpty) {
       _selectedCamera = _cameras.first;
-      _controller = CameraController(_selectedCamera, ResolutionPreset.medium, enableAudio: false);
+      _controller = CameraController(
+          _selectedCamera, ResolutionPreset.medium, enableAudio: false);
       _controller?.initialize().then((_) {
         if (!mounted) {
           return;
@@ -116,10 +129,13 @@ class _CameraScreenState extends State<CameraScreen> {
       print('No camera available');
     }
   }
+//Google Cloud Service Account
   Future<Map<String, dynamic>> loadServiceAccountJson() async {
-    String jsonString = await rootBundle.loadString('assets/clean-emblem-394910-905637ad42b3.json');
+    String jsonString = await rootBundle.loadString(
+        'assets/clean-emblem-394910-905637ad42b3.json');
     return json.decode(jsonString);
   }
+//Take Picture And Upload to Google Cloud
   Future<void> _takePictureAndUpload() async {
     final Directory extDir = await getApplicationDocumentsDirectory();
     final String dirPath = '${extDir.path}/Pictures/flutter_app';
@@ -217,7 +233,7 @@ class _CameraScreenState extends State<CameraScreen> {
         print(extractedText);
         _ingrediants = _extractIngredients(extractedText.toString());
         _expirydate = _extractExpiryDate(extractedText.toString());
-        product_name= _extractProductName(extractedText.toString());
+        product_name = _extractProductName(extractedText.toString());
         print("Ingredients:- $_ingrediants");
         print("Expiry Date:- $_expirydate");
         print('Product Name: $product_name');
@@ -228,12 +244,24 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-
-  Future<void> _insertDataIntoPostgreSQL(String imageUrl, String timestamp, String location, String deviceInfo,String groupid,String extractedText,String username) async {
+  //DATABASE
+  //Insert Data To Image store
+  Future<void> _insertDataIntoPostgreSQL(String imageUrl, String timestamp,
+      String location, String deviceInfo, String groupid, String extractedText,
+      String username) async {
     try {
       // Execute an insert query to insert data into PostgreSQL table
-      await conn?.execute('INSERT INTO ai.image_store (image_url, capturetime, location, devicename,groupid,extracted_text,username)VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7)',
-          parameters: [imageUrl, timestamp, location, deviceInfo,groupid,extractedText,username]);
+      await conn?.execute(
+          'INSERT INTO ai.image_store (image_url, capturetime, location, devicename,groupid,extracted_text,username)VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7)',
+          parameters: [
+            imageUrl,
+            timestamp,
+            location,
+            deviceInfo,
+            groupid,
+            extractedText,
+            username
+          ]);
 
       print('Data inserted into PostgreSQL successfully');
     } catch (e) {
@@ -241,12 +269,14 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-
+//Get the Search Products List
   Future<List<String>> _searchProduct(String query) async {
-    final Set<String> uniqueProducts = {}; // Use a set to store unique product names
+    final Set<String> uniqueProducts = {
+    }; // Use a set to store unique product names
     try {
       final results = await conn?.execute(
-        Sql.named('SELECT item_name FROM ai.inventory_inward_outward WHERE item_name ILIKE @query AND username = @username'),
+        Sql.named(
+            'SELECT item_name FROM ai.inventory_inward_outward WHERE item_name ILIKE @query AND username = @username'),
         parameters: {
           'query': '%$query%',
           'username': widget.username,
@@ -262,104 +292,7 @@ class _CameraScreenState extends State<CameraScreen> {
     // Convert set back to list before returning
     return uniqueProducts.toList();
   }
-
-  Future<void> _getDetails() async {
-    try {
-      final results = await conn?.execute(
-        'SELECT * FROM ai.inventory_inward_outward WHERE username = \$1',
-        parameters: [widget.username],
-      );
-      if (results != null && results.isNotEmpty) {
-        // Convert the query results to a list of maps
-        List<Map<String, dynamic>> productDetailsList = [];
-        for (final result in results) {
-          productDetailsList.add(result.toColumnMap());
-        }
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AllProductDetails(
-              productDetailsList: productDetailsList,
-            ),
-          ),
-        );
-      } else {
-        // No matching records found
-        print('No matching records found for username: ${widget.username}');
-      }
-    } catch (e) {
-      print('Error fetching product details: $e');
-    }
-  }
-
-  void _onProductTap(String productName) async {
-    // Fetch product details
-    final productDetails = await getProductDetails(productName,widget.username);
-    // Navigate to product details page and pass the details
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => productDetailsPage(
-          productDetailsList: productDetails,
-          username: widget.username, // Pass the username
-          userData: widget.userData,
-        ),
-      ),
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> getProductDetails(String productName, String username) async {
-    try {
-      final results = await conn?.execute(
-        'SELECT * FROM ai.inventory_inward_outward WHERE item_name = \$1 AND username = \$2',
-        parameters:[productName, username],
-      );
-      if (results != null && results.isNotEmpty) {
-        // Convert query results to a list of maps
-        List<Map<String, dynamic>> productDetailsList = [];
-        for (final result in results) {
-          productDetailsList.add(result.toColumnMap());
-        }
-        return productDetailsList;
-      } else {
-        return []; // Return an empty list if no results found
-      }
-    } catch (e) {
-      print('Error fetching product details: $e');
-      return []; // Return an empty list in case of error
-    }
-  }
-  Future<void> _searchInventoryByDate(String selectedDate) async {
-    print(selectedDate);
-    try {
-      final results = await conn?.execute(
-        'SELECT item_name, inward, outward FROM ai.inventory_inward_outward WHERE date = \$1',
-        parameters: [selectedDate],
-      );
-      print(results);
-      List<Map<String, dynamic>> inventoryData = [];
-      if (results != null) {
-        for (var result in results) {
-          inventoryData.add({
-            'item_name': result[0],
-            'inward': result[1],
-            'outward': result[2],
-          });
-        }
-      }
-      // Process the results and display them on a new page
-      // Navigate to the new page with the inventory data
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => inventoryDetailsPage(inventoryData: inventoryData),
-        ),
-      );
-    } catch (e) {
-      print('Error searching inventory by date: $e');
-    }
-  }
-
+  //Upload Data to the Postgres in Image Store
   Future<void> _uploadData() async {
     try {
       // Execute a query to retrieve data with similar group IDs
@@ -381,25 +314,30 @@ class _CameraScreenState extends State<CameraScreen> {
       // Extract product name and expiry date from the combined text
       final productName = _extractProductName(combinedText);
       final expiryDate = _extractExpiryDate(combinedText);
-      brandname =widget.brandName;
+      brandname = widget.brandName;
       print('Combined Text: $combinedText');
       print('Product Name: $productName');
       print('Expiry Date: $expiryDate');
       print('Inventory Type: $_inventoryType');
 
       // Check if both product name and expiry date are not null
-      if (productName.isNotEmpty && expiryDate.isNotEmpty && expiryDate != 'Expiry date not found') {
+      if (productName.isNotEmpty && expiryDate.isNotEmpty &&
+          expiryDate != 'Expiry date not found') {
         // Store the data in the "inventory" table
-        await _insertDataIntoInventory(productName,expiryDate,groupid,brandname);
-        const snackBar = SnackBar(content: Text('Data stored in inventory table.'),
-        backgroundColor: Colors.green);
+        await _insertDataIntoInventory(
+            productName, expiryDate, groupid, brandname);
+        const snackBar = SnackBar(
+            content: Text('Data stored in inventory table.'),
+            backgroundColor: Colors.green);
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
         print('Data stored in inventory table: $productName, $expiryDate');
       } else {
-        const snackBar = SnackBar(content: Text('Product name or expiry date is null or invalid, data not stored in inventory table.'),
-        backgroundColor: Colors.red);
+        const snackBar = SnackBar(content: Text(
+            'Product name or expiry date is null or invalid, data not stored in inventory table.'),
+            backgroundColor: Colors.red);
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
-        print('Product name or expiry date is null or invalid, data not stored in inventory table.');
+        print(
+            'Product name or expiry date is null or invalid, data not stored in inventory table.');
       }
 
       // Now you can store or further process the productName and expiryDate as needed
@@ -407,25 +345,36 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Error executing query: $e');
     }
   }
-
-  Future<void> _insertDataIntoInventory(String itemName, String expiryDate,String GroupID, String BrandName) async {
+//Upload data to Inventory Table
+  Future<void> _insertDataIntoInventory(String itemName, String expiryDate,
+      String GroupID, String BrandName) async {
     try {
       final currentDate = DateTime.now().toIso8601String();
-      int deviceIndex = widget.userData.indexWhere((row) => row.contains(widget.selectedDevice));
-      String username =widget.username;
-      String location =widget.userData[deviceIndex][12];
-      String device=widget.selectedDevice;
+      int deviceIndex = widget.userData.indexWhere((row) =>
+          row.contains(widget.selectedDevice));
+      String username = widget.username;
+      String location = widget.userData[deviceIndex][12];
+      String device = widget.selectedDevice;
       print(location);
       print(device);
       // Execute an insert query to insert data into the "inventory" table
       await conn?.execute(
         'INSERT INTO ai.inventory (item_name, expiry_date,groupid,brandname,location,device) VALUES (\$1, \$2,\$3, \$4,\$5,\$6)',
-        parameters: [itemName, expiryDate,GroupID,BrandName,location,device],
+        parameters: [
+          itemName,
+          expiryDate,
+          GroupID,
+          BrandName,
+          location,
+          device
+        ],
       );
       if (_inventoryType == 'Inward') {
-        await _updateOrInsertDataIntoInwardInventory(itemName, expiryDate, username, currentDate,BrandName);
+        await _updateOrInsertDataIntoInwardInventory(
+            itemName, expiryDate, username, currentDate, BrandName);
       } else if (_inventoryType == 'Outward') {
-        await _updateOrInsertDataIntoOutwardInventory(itemName, expiryDate, username, currentDate,BrandName);
+        await _updateOrInsertDataIntoOutwardInventory(
+            itemName, expiryDate, username, currentDate, BrandName);
       } else {
         print('Invalid inventory type: $_inventoryType');
       }
@@ -434,24 +383,48 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Error inserting data into inventory table: $e');
     }
   }
-  Future<void> _updateOrInsertDataIntoInwardInventory(String itemName, String expiryDate, String username, String currentDate, String brandname) async {
+//Insert data to when Inventory is inward
+  Future<void> _updateOrInsertDataIntoInwardInventory(String itemName,
+      String expiryDate, String username, String currentDate,
+      String brandname) async {
     try {
       final result = await conn?.execute(
         'SELECT * FROM ai.inventory_inward_outward WHERE item_name = \$1 AND expiry_date = \$2 AND inward_device = \$3 AND username = \$4 AND date = \$5',
-        parameters: [itemName, expiryDate, widget.selectedDevice, username, currentDate],
+        parameters: [
+          itemName,
+          expiryDate,
+          widget.selectedDevice,
+          username,
+          currentDate
+        ],
       );
       if (result != null && result.isNotEmpty) {
         // Record exists, update inward device
         await conn?.execute(
           'UPDATE ai.inventory_inward_outward SET inward = inward + 1,inward_device = \$1 WHERE item_name = \$2 AND expiry_date = \$3 AND inward_device = \$4 AND username = \$5 AND date = \$6',
-          parameters: [widget.selectedDevice, itemName, expiryDate, widget.selectedDevice, username, currentDate],
+          parameters: [
+            widget.selectedDevice,
+            itemName,
+            expiryDate,
+            widget.selectedDevice,
+            username,
+            currentDate
+          ],
         );
         print('Inward record updated for $itemName on $currentDate');
       } else {
         // Record does not exist, insert a new entry with inward
         await conn?.execute(
           'INSERT INTO ai.inventory_inward_outward (inward_device, inward, item_name, expiry_date, username, date, brandname) VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7)',
-          parameters: [widget.selectedDevice, 1, itemName, expiryDate, username, currentDate, brandname],
+          parameters: [
+            widget.selectedDevice,
+            1,
+            itemName,
+            expiryDate,
+            username,
+            currentDate,
+            brandname
+          ],
         );
         print('Data inserted into inward inventory table successfully');
       }
@@ -459,18 +432,33 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Error updating or inserting data into inward inventory table: $e');
     }
   }
-
-  Future<void> _updateOrInsertDataIntoOutwardInventory(String itemName, String expiryDate, String username, String currentDate, String brandname) async {
+//Insert data to when Inventory is Outward
+  Future<void> _updateOrInsertDataIntoOutwardInventory(String itemName,
+      String expiryDate, String username, String currentDate,
+      String brandname) async {
     try {
       final result = await conn?.execute(
         'SELECT * FROM ai.inventory_inward_outward WHERE item_name = \$1 AND expiry_date = \$2 AND outward_device = \$3 AND username = \$4 AND date = \$5',
-        parameters: [itemName, expiryDate, widget.selectedDevice, username, currentDate],
+        parameters: [
+          itemName,
+          expiryDate,
+          widget.selectedDevice,
+          username,
+          currentDate
+        ],
       );
       if (result != null && result.isNotEmpty) {
         // Record exists, update outward device
         await conn?.execute(
           'UPDATE ai.inventory_inward_outward SET outward= outward + 1,outward_device = \$1 WHERE item_name = \$2 AND expiry_date = \$3 AND outward_device = \$4 AND username = \$5 AND date = \$6',
-          parameters: [widget.selectedDevice, itemName, expiryDate, widget.selectedDevice, username, currentDate],
+          parameters: [
+            widget.selectedDevice,
+            itemName,
+            expiryDate,
+            widget.selectedDevice,
+            username,
+            currentDate
+          ],
         );
         if (kDebugMode) {
           print('Outward record updated for $itemName on $currentDate');
@@ -479,25 +467,40 @@ class _CameraScreenState extends State<CameraScreen> {
         // Record does not exist, insert a new entry with outward
         await conn?.execute(
           'INSERT INTO ai.inventory_inward_outward (outward_device, outward, item_name, expiry_date, username, date, brandname) VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7)',
-          parameters: [widget.selectedDevice, 1, itemName, expiryDate, username, currentDate, brandname],
+          parameters: [
+            widget.selectedDevice,
+            1,
+            itemName,
+            expiryDate,
+            username,
+            currentDate,
+            brandname
+          ],
         );
         print('Data inserted into outward inventory table successfully');
       }
     } catch (e) {
-      print('Error updating or inserting data into outward inventory table: $e');
+      print(
+          'Error updating or inserting data into outward inventory table: $e');
     }
   }
-
+//Extract Ingredients
   List<String> _extractIngredients(String extractedText) {
     // Define keywords that indicate the start of the ingredients list
-    final ingredientKeywords = ['Ingredients:', 'Contains:', 'Ingredients:', 'INGREDIENTS:'];
+    final ingredientKeywords = [
+      'Ingredients:',
+      'Contains:',
+      'Ingredients:',
+      'INGREDIENTS:'
+    ];
 
     // Iterate through each keyword to find ingredients list
     for (final keyword in ingredientKeywords) {
       final startIndex = extractedText.indexOf(keyword);
       if (startIndex != -1) {
         // Extract the text after the keyword
-        final textAfterKeyword = extractedText.substring(startIndex + keyword.length);
+        final textAfterKeyword = extractedText.substring(
+            startIndex + keyword.length);
 
         // Split the text into lines
         final lines = textAfterKeyword.split('\n');
@@ -506,7 +509,8 @@ class _CameraScreenState extends State<CameraScreen> {
         final trimmedLines = lines.map((line) => line.trim()).toList();
 
         // Remove empty lines
-        final nonEmptyLines = trimmedLines.where((line) => line.isNotEmpty).toList();
+        final nonEmptyLines = trimmedLines.where((line) => line.isNotEmpty)
+            .toList();
 
         // Return the list of non-empty lines
         return nonEmptyLines;
@@ -514,15 +518,91 @@ class _CameraScreenState extends State<CameraScreen> {
     }
     return [];
   }
+  //Get all the Product Details
+  Future<void> _getDetails() async {
+    try {
+      final results = await conn?.execute(
+        'SELECT * FROM ai.inventory_inward_outward WHERE username = \$1',
+        parameters: [widget.username],
+      );
+      if (results != null && results.isNotEmpty) {
+        // Convert the query results to a list of maps
+        List<Map<String, dynamic>> productDetailsList = [];
+        for (final result in results) {
+          productDetailsList.add(result.toColumnMap());
+        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                AllProductDetails(
+                  productDetailsList: productDetailsList,
+                ),
+          ),
+        );
+      } else {
+        // No matching records found
+        print('No matching records found for username: ${widget.username}');
+      }
+    } catch (e) {
+      print('Error fetching product details: $e');
+    }
+  }
+//After Search when tap on that product it will get the Info of Tapped Product
+  void _onProductTap(String productName) async {
+    // Fetch product details
+    final productDetails = await getProductDetails(
+        productName, widget.username);
+    // Navigate to product details page and pass the details
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            productDetailsPage(
+              productDetailsList: productDetails,
+              username: widget.username, // Pass the username
+              userData: widget.userData,
+            ),
+      ),
+    );
+  }
+  // Get the product List
+  Future<List<Map<String, dynamic>>> getProductDetails(String productName,
+      String username) async {
+    try {
+      final results = await conn?.execute(
+        'SELECT * FROM ai.inventory_inward_outward WHERE item_name = \$1 AND username = \$2',
+        parameters: [productName, username],
+      );
+      if (results != null && results.isNotEmpty) {
+        // Convert query results to a list of maps
+        List<Map<String, dynamic>> productDetailsList = [];
+        for (final result in results) {
+          productDetailsList.add(result.toColumnMap());
+        }
+        return productDetailsList;
+      } else {
+        return []; // Return an empty list if no results found
+      }
+    } catch (e) {
+      print('Error fetching product details: $e');
+      return []; // Return an empty list in case of error
+    }
+  }
 
+
+  //EXTRACT DATA
+  //Extract Expiry Date
   String _extractExpiryDate(String extractedText) {
     final datePatterns = [
       r'\b(?:Best Before|Exp|Use By)[: ]+(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
       r'\b(?:MFG|Mfd|Manufactured) Date[: ]+(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
       r'(\d{1,2}[./-]\d{4})\b',
       r'\bBest\s*Before:\s*([A-Z]+)\s*/\s*(\d{1,2})\b',
-      r'(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b', // Added pattern for "Best Before:FEB/25"
-      r'(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})\b', // Pattern for "30JUL24"
+      r'(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
+      // Added pattern for "Best Before:FEB/25"
+      r'(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})\b',
+      // Pattern for "30JUL24"
     ];
 
     DateTime? firstDate;
@@ -549,7 +629,7 @@ class _CameraScreenState extends State<CameraScreen> {
               secondDate = date;
             }
           }
-        }  else {
+        } else {
           final dateString = match.group(0)!;
           final day = int.tryParse(dateString.substring(0, 2));
           final monthString = dateString.substring(2, 5);
@@ -608,13 +688,21 @@ class _CameraScreenState extends State<CameraScreen> {
     }
 
     if (firstDate != null && secondDate == null) {
-      return firstDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
-    } else if (secondDate != null && (secondDate.isAfter(currentDate) || secondDate.isAtSameMomentAs(currentDate))) {
-      return secondDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
+      return firstDate
+          .toString()
+          .split(' ')
+          .first; // Return only the date part in yyyy-MM-dd format
+    } else if (secondDate != null && (secondDate.isAfter(currentDate) ||
+        secondDate.isAtSameMomentAs(currentDate))) {
+      return secondDate
+          .toString()
+          .split(' ')
+          .first; // Return only the date part in yyyy-MM-dd format
     } else {
       return 'Expiry date not found';
     }
   }
+
   List<String> _filteredImages() {
     if (_searchQuery.isEmpty) {
       return _imagePaths;
@@ -622,22 +710,59 @@ class _CameraScreenState extends State<CameraScreen> {
       return _imagePaths.where((path) => path.contains(_searchQuery)).toList();
     }
   }
-  String _extractProductName(String extractedText) {
-    // Define keywords that indicate the start of the product name
-    final productNameKeywords = ['PONDS DREAMFLOWER', 'PRODUCT NAME:', 'Tacrolimus Ointment','BALAJI\nWAFERS\nCRUNCHEM\nSimply Salted','BALAJI\nWAFERS\nCRUNCHEM\nMASALA MASTI','BALAJI'];
+//Add the Products into database to Scan
+  Future<void> _addProductNamesToDatabase(String productName) async {
+    try {
+      await conn?.execute(Sql.named(
+          'INSERT INTO ai.product_names (prodcts) VALUES (@productName)'),
+          parameters: {'productName': productName});
+      // Optionally, you can update the _productNames list if needed
+      setState(() {
+        _productNames.add(productName);
+      });
+      const snackBar = SnackBar(content: Text(
+          'Product name added to database'),
+          backgroundColor: Colors.green);
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      // Show a success message or perform any other actions upon successful insertion
+    } catch (e) {
+      const snackBar = SnackBar(content: Text(
+          'Error adding product name to database:'),
+          backgroundColor: Colors.red);
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      print('Exception $e');
+    }
+  }
 
-    // Iterate through each keyword to find the product name
-    for (final keyword in productNameKeywords) {
-      final startIndex = extractedText.indexOf(keyword);
-      if (startIndex != -1) {
-        final formattedProductName = keyword.replaceAll('\n', ' ');
-        product_name = formattedProductName.toString();
-        return formattedProductName;
+  Future<void> _retrieveProductNames() async {
+    final results = await conn?.execute('SELECT prodcts FROM ai.product_names');
+    for (final row in results!) {
+      final productName = row[0] as String;
+      _productNames.add(productName);
+    }
+    print(results);
+  }
+
+  String _extractProductName(String extractedText) {
+    String bestMatch = 'Product Not Found';
+    double bestMatchScore = 0.0;
+
+    for (final productName in _productNames) {
+      double similarity = productName.similarityTo(extractedText);
+      if (similarity > bestMatchScore) {
+        bestMatchScore = similarity;
+        bestMatch = productName;
       }
     }
 
-    return 'Product Not Found'; // Return if no keyword is found
+    // Consider a match if similarity score is above a certain threshold
+    if (bestMatchScore > 0.5) {
+      return bestMatch;
+    } else {
+      return 'Product Not Found';
+    }
   }
+
   @override
   Widget build(BuildContext context) {
     if (_controller == null || !_controller!.value.isInitialized) {
@@ -650,8 +775,10 @@ class _CameraScreenState extends State<CameraScreen> {
           padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
-              accountName: Text(widget.username), // Display username in the header
-              accountEmail: null, // Set to null or provide user's email if available
+              accountName: Text(widget.username),
+              // Display username in the header
+              accountEmail: null,
+              // Set to null or provide user's email if available
               currentAccountPicture: const CircleAvatar(
                 child: Icon(Icons.person), // You can replace Icon with user's profile picture
               ),
@@ -662,7 +789,9 @@ class _CameraScreenState extends State<CameraScreen> {
                 Navigator.pop(context); // Close the drawer
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => EditDevicePage(userData: widget.userData,)), // Navigate to DeviceEditingPage
+                  MaterialPageRoute(builder: (context) => EditDevicePage(
+                    userData: widget.userData,
+                  )), // Navigate to DeviceEditingPage
                 );
               },
             ),
@@ -672,7 +801,9 @@ class _CameraScreenState extends State<CameraScreen> {
                 Navigator.pop(context); // Close the drawer
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AddDevicePage(userData: widget.userData)), // Navigate to AddDevicePage
+                  MaterialPageRoute(builder: (context) => AddDevicePage(
+                    userData: widget.userData,
+                  )), // Navigate to AddDevicePage
                 );
               },
             ),
@@ -680,12 +811,12 @@ class _CameraScreenState extends State<CameraScreen> {
           ],
         ),
       ),
-      body: CustomScrollView(
-        slivers: <Widget>[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
+      body: Expanded(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
                   Expanded(
                     child: TextField(
@@ -721,7 +852,9 @@ class _CameraScreenState extends State<CameraScreen> {
                                 onPressed: () {
                                   final userInput = _timerController.text;
                                   setState(() {
-                                    _timerSeconds = userInput.isNotEmpty ? int.parse(userInput) : 10;
+                                    _timerSeconds = userInput.isNotEmpty
+                                        ? int.parse(userInput)
+                                        : 10;
                                     _captureTimer.cancel(); // Cancel the existing timer
                                     _startTimer();
                                   });
@@ -735,7 +868,6 @@ class _CameraScreenState extends State<CameraScreen> {
                       );
                     },
                   ),
-
                   IconButton(
                     icon: const Icon(Icons.search),
                     onPressed: () async {
@@ -745,149 +877,152 @@ class _CameraScreenState extends State<CameraScreen> {
                       });
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today),
-                    onPressed: () async {
-                      final DateTime? selectedDate = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now(),
-                      );
-                      if (selectedDate != null) {
-                        setState(() {
-                          _selectedDate = selectedDate;
-                        });
-                        String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
-                        _searchInventoryByDate(formattedDate);
-                      }
-                    },
-                  )
                 ],
               ),
-            ),
-          ),
-          // Display filtered products
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                return _filteredProducts.isNotEmpty
-                    ? GestureDetector(
-                  onTap: () => _onProductTap(_filteredProducts[index]),
-                  child: ListTile(
-                    title: Text(_filteredProducts[index]),
-                  ),
-                )
-                    : Container();
-              },
-              childCount: _filteredProducts.length,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 500, // Adjust the height as needed
-              child: CameraPreview(_controller!),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: _takePictureAndUpload,
-                child: const Text('Take Photo'),
+             SizedBox(height: 20),
+              if (_filteredProducts.isNotEmpty)
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: _filteredProducts.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return GestureDetector(
+                      onTap: () => _onProductTap(_filteredProducts[index]),
+                      child: ListTile(
+                        title: Text(_filteredProducts[index]),
+                      ),
+                    );
+                  },
+                ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: SizedBox(
+                  height: 500, // Adjust the height as needed
+                  child: CameraPreview(_controller!),
+                ),
               ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: _uploadData,
-                child: const Text('Upload Data'),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: _getDetails,
-                child: const Text('All Details'),
-              ),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                return _latestImagePath != null
-                    ? Container(
+              if (_latestImagePath != null)
+                Container(
                   padding: const EdgeInsets.all(16.0),
-                )
-                    : Container();
-              },
-              childCount: 1,
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                final filteredPaths = _filteredImages();
-                return filteredPaths.isNotEmpty
-                    ? SizedBox(
+                ),
+              if (_filteredImages().isNotEmpty)
+                SizedBox(
                   height: 100.0,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: filteredPaths.length,
+                    itemCount: _filteredImages().length,
                     itemBuilder: (context, index) {
-                      final imagePath = filteredPaths[index];
+                      final imagePath = _filteredImages()[index];
                       return Container(
                         margin: const EdgeInsets.all(4.0),
                         child: Image.file(File(imagePath), height: 80.0),
                       );
                     },
                   ),
-                )
-                    : Container();
-              },
-              childCount: 1,
-            ),
+                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                   Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: ElevatedButton(
+                        onPressed: _takePictureAndUpload,
+                        child: const Text('Take Photo'),
+                      ),
+                    ),
+                  SizedBox(width: 30),
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: ElevatedButton(
+                      onPressed: _uploadData,
+                      child: const Text('Upload Data'),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: ElevatedButton(
+                      onPressed: _getDetails,
+                      child: const Text('All Details'),
+                    ),
+                  ),
+                  SizedBox(width: 30),
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: ElevatedButton(
+                      onPressed: (){
+                        _showAddProductNameDialog(context);
+                      },
+                      child: const Text('Add Products'),
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Text('Detected Text: $_detectedText'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Text('Ingredients: $_ingrediants'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Text('Expiry Date: $_expirydate'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Text('Product Name: $product_name'),
+                  ),
+                ],
+              ),
+            ],
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Detected Text: $_detectedText'),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Ingredients: $_ingrediants'),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Expiry Date: $_expirydate'),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Product Name: $product_name'),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Remaining: $remaining'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-
+  Future<void> _showAddProductNameDialog(BuildContext context) async {
+    String newProductName = '';
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add Product Name'),
+          content: TextField(
+            onChanged: (value) {
+              newProductName = value;
+            },
+            decoration: InputDecoration(hintText: 'Enter Product Name'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                _addProductNamesToDatabase(newProductName);
+                print(newProductName);
+                Navigator.of(context).pop();
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
   @override
   void dispose() {
     _captureTimer.cancel();
