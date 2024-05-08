@@ -305,15 +305,22 @@ class _CameraScreenState extends State<CameraScreen> {
       String combinedText = '';
       String groupid = '';
       String brandname = '';
+      String productName ='';
+      String expiryDate ='';
       for (final result in results ?? []) {
         final extractedText = result[1] as String;
         combinedText += '$extractedText ';
         groupid = result[0] as String;
       }
-
-      // Extract product name and expiry date from the combined text
-      final productName = _extractProductName(combinedText);
-      final expiryDate = _extractExpiryDate(combinedText);
+    // Extract product name and expiry date from the combined text
+      if(productName.isEmpty)
+        {
+          productName = _extractProductName(combinedText.toString());
+        }
+       if(expiryDate.isEmpty)
+         {
+           expiryDate = _extractExpiryDate(combinedText);
+         }
       brandname = widget.brandName;
       print('Combined Text: $combinedText');
       print('Product Name: $productName');
@@ -326,18 +333,9 @@ class _CameraScreenState extends State<CameraScreen> {
         // Store the data in the "inventory" table
         await _insertDataIntoInventory(
             productName, expiryDate, groupid, brandname);
-        const snackBar = SnackBar(
-            content: Text('Data stored in inventory table.'),
-            backgroundColor: Colors.green);
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
         print('Data stored in inventory table: $productName, $expiryDate');
       } else {
-        const snackBar = SnackBar(content: Text(
-            'Product name or expiry date is null or invalid, data not stored in inventory table.'),
-            backgroundColor: Colors.red);
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-        print(
-            'Product name or expiry date is null or invalid, data not stored in inventory table.');
+        print('Product name or expiry date is null or invalid, data not stored in inventory table.');
       }
 
       // Now you can store or further process the productName and expiryDate as needed
@@ -379,8 +377,16 @@ class _CameraScreenState extends State<CameraScreen> {
         print('Invalid inventory type: $_inventoryType');
       }
       print('Data inserted into inventory table successfully');
+      const snackBar = SnackBar(
+          content: Text('Data stored in inventory table.'),
+          backgroundColor: Colors.green);
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } catch (e) {
       print('Error inserting data into inventory table: $e');
+      const snackBar = SnackBar(content: Text(
+          'Product name or expiry date is null or invalid, data not stored in inventory table.'),
+          backgroundColor: Colors.red);
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 //Insert data to when Inventory is inward
@@ -427,9 +433,17 @@ class _CameraScreenState extends State<CameraScreen> {
           ],
         );
         print('Data inserted into inward inventory table successfully');
+        const snackBar = SnackBar(
+            content: Text('Data stored in inventory table.'),
+            backgroundColor: Colors.green);
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     } catch (e) {
       print('Error updating or inserting data into inward inventory table: $e');
+      const snackBar = SnackBar(content: Text(
+          'Product name or expiry date is null or invalid, data not stored in inventory table.'),
+          backgroundColor: Colors.red);
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 //Insert data to when Inventory is Outward
@@ -746,7 +760,7 @@ class _CameraScreenState extends State<CameraScreen> {
   String _extractProductName(String extractedText) {
     String bestMatch = 'Product Not Found';
     double bestMatchScore = 0.0;
-
+    print(extractedText);
     for (final productName in _productNames) {
       double similarity = productName.similarityTo(extractedText);
       if (similarity > bestMatchScore) {
@@ -754,12 +768,12 @@ class _CameraScreenState extends State<CameraScreen> {
         bestMatch = productName;
       }
     }
-
+    print(bestMatch);
     // Consider a match if similarity score is above a certain threshold
-    if (bestMatchScore > 0.5) {
+    if (bestMatchScore > 0.1) {
       return bestMatch;
     } else {
-      return 'Product Not Found';
+      return '';
     }
   }
 
