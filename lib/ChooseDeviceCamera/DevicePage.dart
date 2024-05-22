@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:image_store/User_Authentication/choosecamerapage.dart';
+import 'package:image_store/ChooseDeviceCamera//choosecamerapage.dart';
 
 class DevicePage extends StatelessWidget {
   final List<List<dynamic>> userData;

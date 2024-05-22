@@ -6,8 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:image_store/AllProductDetails.dart';
-import 'package:image_store/api.dart';
+import 'package:image_store/AllProductPage//AllProductDetails.dart';
+import 'package:image_store/GoogleApi/api.dart';
 //import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -18,9 +18,9 @@ import 'package:postgres/postgres.dart';
 import 'package:image/image.dart' as img;
 import 'package:string_similarity/string_similarity.dart';
 
-import 'AddDevicePage.dart';
-import 'EditDevicePage.dart';
-import 'ProductDetailsPage.dart';
+import 'package:image_store/AddEditDevices/AddDevicePage.dart';
+import 'package:image_store/AddEditDevices/EditDevicePage.dart';
+import 'package:image_store/Product/ProductDetailsPage.dart';
 
 
 class CameraScreen extends StatefulWidget {

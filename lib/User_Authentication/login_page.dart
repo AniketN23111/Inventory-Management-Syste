@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_store/User_Authentication/RegistrationForm.dart';
 import 'package:postgres/postgres.dart';
-import 'DevicePage.dart';
-
+import 'package:image_store/ChooseDeviceCamera/DevicePage.dart';
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
