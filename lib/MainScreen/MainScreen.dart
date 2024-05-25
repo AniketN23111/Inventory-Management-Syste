@@ -42,7 +42,7 @@ class _CameraScreenState extends State<CameraScreen> {
   List<String> _imagePaths = [];
   String? _latestImagePath;
   late DateTime? _latestImageTimestamp;
-  late Timer _captureTimer;
+  Timer? _captureTimer ;
 
   // late String _deviceInfo=widget.selectedDevice.toString();
   Position? _currentPosition;
@@ -869,7 +869,7 @@ class _CameraScreenState extends State<CameraScreen> {
                                     _timerSeconds = userInput.isNotEmpty
                                         ? int.parse(userInput)
                                         : 10;
-                                    _captureTimer.cancel(); // Cancel the existing timer
+                                      _captureTimer?.cancel(); // Cancel the existing timer
                                     _startTimer();
                                   });
                                   Navigator.of(context).pop();
@@ -1039,7 +1039,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
   @override
   void dispose() {
-    _captureTimer.cancel();
+    _captureTimer?.cancel();
     _controller!.dispose();
     super.dispose();
   }
