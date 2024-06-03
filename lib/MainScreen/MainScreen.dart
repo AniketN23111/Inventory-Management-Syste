@@ -614,9 +614,9 @@ class _CameraScreenState extends State<CameraScreen> {
       r'(\d{1,2}[./-]\d{4})\b',
       r'\bBest\s*Before:\s*([A-Z]+)\s*/\s*(\d{1,2})\b',
       r'(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
-      // Added pattern for "Best Before:FEB/25"
       r'(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})\b',
-      // Pattern for "30JUL24"
+      r'\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{2})\b', // Pattern for "JAN 24"
+      r'(\d{2}[./-]\d{2}[./-]\d{2,4})\b',
     ];
 
     DateTime? firstDate;
@@ -624,78 +624,61 @@ class _CameraScreenState extends State<CameraScreen> {
     final currentDate = DateTime.now();
 
     for (final pattern in datePatterns) {
-      final RegExp regex = RegExp(pattern);
+      final RegExp regex = RegExp(pattern, caseSensitive: false);
       final matches = regex.allMatches(extractedText);
 
       for (final match in matches) {
         final dateString = match.group(0)!;
+        DateTime? date;
 
-        if (dateString.contains(RegExp(r'\d{2}/\d{4}'))) {
+        if (pattern.contains(r'\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{2})\b')) {
+          // Handling MMM YY format
+          final monthString = match.group(1)!.toUpperCase();
+          final year = int.tryParse(match.group(2)!);
+          if (year != null) {
+            final month = {
+              'JAN': 1, 'FEB': 2, 'MAR': 3, 'APR': 4, 'MAY': 5, 'JUN': 6,
+              'JUL': 7, 'AUG': 8, 'SEP': 9, 'OCT': 10, 'NOV': 11, 'DEC': 12
+            }[monthString];
+            if (month != null) {
+              date = DateTime(2000 + year, month, 1);
+            }
+          }
+        } else if (pattern.contains(r'(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})\b')) {
+          // Handling DDMMMYY format
+          final day = int.tryParse(dateString.substring(0, 2));
+          final monthString = dateString.substring(2, 5).toUpperCase();
+          final year = int.tryParse(dateString.substring(5, 7));
+          if (day != null && year != null) {
+            final month = {
+              'JAN': 1, 'FEB': 2, 'MAR': 3, 'APR': 4, 'MAY': 5, 'JUN': 6,
+              'JUL': 7, 'AUG': 8, 'SEP': 9, 'OCT': 10, 'NOV': 11, 'DEC': 12
+            }[monthString];
+            if (month != null) {
+              date = DateTime(2000 + year, month, day);
+            }
+          }
+        } else if (dateString.contains(RegExp(r'\d{2}/\d{4}'))) {
           // Handling MM/YYYY format separately
           final parts = dateString.split('/');
           final month = int.tryParse(parts[0]);
           final year = int.tryParse(parts[1]);
           if (month != null && year != null && year >= 0 && year <= 9999) {
-            final date = DateTime(year, month);
-            if (firstDate == null) {
-              firstDate = date;
-            } else if (secondDate == null || date.isAfter(secondDate)) {
-              secondDate = date;
-            }
+            date = DateTime(year, month);
           }
         } else {
-          final dateString = match.group(0)!;
-          final day = int.tryParse(dateString.substring(0, 2));
-          final monthString = dateString.substring(2, 5);
-          final year = int.tryParse(dateString.substring(5, 7));
-          if (day != null && year != null && year >= 0 && year <= 99) {
-            final month;
-            switch (monthString) {
-              case 'JAN':
-                month = 1;
-                break;
-              case 'FEB':
-                month = 2;
-                break;
-              case 'MAR':
-                month = 3;
-                break;
-              case 'APR':
-                month = 4;
-                break;
-              case 'MAY':
-                month = 5;
-                break;
-              case 'JUN':
-                month = 6;
-                break;
-              case 'JUL':
-                month = 7;
-                break;
-              case 'AUG':
-                month = 8;
-                break;
-              case 'SEP':
-                month = 9;
-                break;
-              case 'OCT':
-                month = 10;
-                break;
-              case 'NOV':
-                month = 11;
-                break;
-              case 'DEC':
-                month = 12;
-                break;
-              default:
-                continue;
-            }
-            final date = DateTime(year + 2000, month, day);
-            if (firstDate == null) {
-              firstDate = date;
-            } else if (secondDate == null || date.isAfter(secondDate)) {
-              secondDate = date;
-            }
+          try {
+            date = DateTime.parse(dateString.replaceAll(RegExp(r'[./-]'), '-'));
+          } catch (e) {
+            continue;
+          }
+        }
+
+        if (date != null) {
+          if (firstDate == null || date.isBefore(firstDate)) {
+            firstDate = date;
+          } else if (secondDate == null || date.isAfter(secondDate)) {
+            secondDate = date;
           }
         }
       }
@@ -716,6 +699,7 @@ class _CameraScreenState extends State<CameraScreen> {
       return 'Expiry date not found';
     }
   }
+
 
   List<String> _filteredImages() {
     if (_searchQuery.isEmpty) {
