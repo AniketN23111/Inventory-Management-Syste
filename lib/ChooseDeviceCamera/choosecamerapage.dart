@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:image_store/MainScreen/MainScreen.dart';
+import 'package:image_store/MainScreen/CameraScreen.dart';
 
 class ChooseCameraPage extends StatelessWidget {
   final List<List<dynamic>> userData;
@@ -7,12 +7,13 @@ class ChooseCameraPage extends StatelessWidget {
   final String selectedDevice;
   final String brandName;
 
-  const ChooseCameraPage({super.key,
+  const ChooseCameraPage({
+    Key? key,
     required this.userData,
     required this.username,
     required this.selectedDevice,
     required this.brandName,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +54,6 @@ class ChooseCameraPage extends StatelessWidget {
     String inventoryType = getInventoryTypeFromSelectedDevice();
     String organizationName = getOrganizationNameFromSelectedDevice();
 
-    // Concatenate device name, organization name, and inventory type for the app bar title and text widget
-    //String appBarTitle = '$selectedDevice - $organizationName - $brandName - $inventoryType';
     String textWidgetText = 'Cameras for $selectedDevice - $inventoryType:';
 
     return Scaffold(
@@ -119,4 +118,5 @@ class ChooseCameraPage extends StatelessWidget {
       ),
     );
   }
+
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:postgres/postgres.dart';
-import 'package:image_store/User_Authentication/login_page.dart';
 
 class AddDevicePage extends StatefulWidget {
   final List<List<dynamic>> userData;

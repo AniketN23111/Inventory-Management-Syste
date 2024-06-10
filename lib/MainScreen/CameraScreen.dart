@@ -8,15 +8,14 @@ import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_store/AllProductPage//AllProductDetails.dart';
 import 'package:image_store/GoogleApi/api.dart';
-//import 'package:open_file/open_file.dart';
+import 'package:image_store/Profile/ProfileDetails.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:geolocator/geolocator.dart';
-//import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:postgres/postgres.dart';
 import 'package:image/image.dart' as img;
-import 'package:string_similarity/string_similarity.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:image_store/AddEditDevices/AddDevicePage.dart';
 import 'package:image_store/AddEditDevices/EditDevicePage.dart';
@@ -30,7 +29,8 @@ class CameraScreen extends StatefulWidget {
   final String inventoryType;
   final String brandName;
   final List<List<dynamic>> userData;
-  const CameraScreen({Key? key, required this.deviceName,required this.username, required this.userData,required this.selectedDevice,required this.inventoryType,required this.brandName}) : super(key: key);
+  const CameraScreen({
+    Key? key, required this.deviceName,required this.username, required this.userData,required this.selectedDevice,required this.inventoryType,required this.brandName}) : super(key: key);
   @override
   _CameraScreenState createState() => _CameraScreenState();
 }
@@ -76,7 +76,10 @@ class _CameraScreenState extends State<CameraScreen> {
       api = CloudApi(json);
     });
     _postgraseconnection();
+
+    _storeDetailsInPrefs(widget.deviceName, widget.brandName, widget.username, widget.userData,widget.inventoryType,widget.selectedDevice);
   }
+
 
   void _startTimer() {
     _captureTimer = Timer.periodic(Duration(seconds: _timerSeconds), (timer) {
@@ -151,7 +154,8 @@ class _CameraScreenState extends State<CameraScreen> {
       img.Image? image = img.decodeImage(imageFile.readAsBytesSync());
       if (image != null) {
         image = img.grayscale(image);
-        final grayscaleBytes = img.encodePng(image);
+        img.Image adjustimage =img.adjustColor(image,contrast: 1.5);
+        final grayscaleBytes = img.encodePng(adjustimage);
         final grayscaleImageFile = File('${dirPath}/grayscale_${DateTime
             .now()
             .millisecondsSinceEpoch}.png');
@@ -175,7 +179,7 @@ class _CameraScreenState extends State<CameraScreen> {
         print(metadata.toString());
 
         final textRecognizer = TextRecognizer();
-        final inputImage = InputImage.fromFile(imageFile);
+        final inputImage = InputImage.fromFile(grayscaleImageFile);
         final recognizedText = await textRecognizer.processImage(inputImage);
         final extractedText = recognizedText.text;
         final latestCaptureResult = await conn?.execute(
@@ -195,7 +199,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 .difference(latestCaptureTime)
                 .inSeconds;
 
-            if (timeDifference <= _timerSeconds - 1) {
+            if (timeDifference <= _timerSeconds - 3) {
               // Reuse the group ID if the time difference is within 10 seconds
               _groupId = latestGroupId;
             } else {
@@ -605,18 +609,18 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
 
-  //EXTRACT DATA
-  //Extract Expiry Date
   String _extractExpiryDate(String extractedText) {
     final datePatterns = [
       r'\b(?:Best Before|Exp|Use By)[: ]+(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
       r'\b(?:MFG|Mfd|Manufactured) Date[: ]+(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
       r'(\d{1,2}[./-]\d{4})\b',
+      r'(\d{1,2}[./-]\d{2})\b',
       r'\bBest\s*Before:\s*([A-Z]+)\s*/\s*(\d{1,2})\b',
       r'(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\b',
       r'(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})\b',
       r'\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{2})\b', // Pattern for "JAN 24"
       r'(\d{2}[./-]\d{2}[./-]\d{2,4})\b',
+      r'(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{4})\b',
     ];
 
     DateTime? firstDate;
@@ -685,20 +689,19 @@ class _CameraScreenState extends State<CameraScreen> {
     }
 
     if (firstDate != null && secondDate == null) {
-      return firstDate
-          .toString()
-          .split(' ')
-          .first; // Return only the date part in yyyy-MM-dd format
+      if (firstDate.isBefore(currentDate)) {
+        return 'Expired product'; // Expiry date is before the current date
+      } else {
+        return firstDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
+      }
     } else if (secondDate != null && (secondDate.isAfter(currentDate) ||
         secondDate.isAtSameMomentAs(currentDate))) {
-      return secondDate
-          .toString()
-          .split(' ')
-          .first; // Return only the date part in yyyy-MM-dd format
+      return secondDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
     } else {
       return 'Expiry date not found';
     }
   }
+
 
 
   List<String> _filteredImages() {
@@ -740,27 +743,44 @@ class _CameraScreenState extends State<CameraScreen> {
     }
     print(results);
   }
-
   String _extractProductName(String extractedText) {
-    String bestMatch = 'Product Not Found';
-    double bestMatchScore = 0.0;
-    print(extractedText);
-    for (final productName in _productNames) {
-      double similarity = productName.similarityTo(extractedText);
-      if (similarity > bestMatchScore) {
-        bestMatchScore = similarity;
-        bestMatch = productName;
+    // Normalize and split the extracted text by lines
+    List<String> lines = extractedText.split('\n').map((line) => line.trim().toLowerCase()).toList();
+    print('Extracted Lines: $lines');
+
+    // Check each combination of consecutive lines for a potential product name
+    for (int i = 0; i < lines.length; i++) {
+      for (int j = i + 1; j <= lines.length; j++) {
+        String combinedLines = lines.sublist(i, j).join(' ');
+        print('Combined Lines: $combinedLines');
+
+        // Check the combined lines against the product names list
+        for (final productName in _productNames) {
+          String normalizedProductName = productName.trim().toLowerCase();
+          if (combinedLines.contains(normalizedProductName)) {
+            print('Matched Product: $productName');
+            return productName;
+          }
+        }
       }
     }
-    print(bestMatch);
-    // Consider a match if similarity score is above a certain threshold
-    if (bestMatchScore > 0.1) {
-      return bestMatch;
-    } else {
-      return '';
-    }
+
+    // Return 'Product Not Found' if no match is found
+    print('Product Not Found');
+    return 'Product Not Found';
   }
 
+  void _storeDetailsInPrefs(String deviceName, String brandName, String username, List<List<dynamic>> userData,String inventoryType,String selectDevice) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('deviceName', deviceName);
+    prefs.setString('brandName', brandName);
+    prefs.setString('username', username);
+    // Convert user data to JSON string and store it
+    String userDataJson = userData.map((list) => list.join(',')).join('|');
+    prefs.setString('userData', userDataJson);
+    prefs.setString('inventoryType', inventoryType);
+    prefs.setString('selected_device', selectDevice);
+  }
   @override
   Widget build(BuildContext context) {
     if (_controller == null || !_controller!.value.isInitialized) {
@@ -800,6 +820,18 @@ class _CameraScreenState extends State<CameraScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => AddDevicePage(
+                    userData: widget.userData,
+                  )), // Navigate to AddDevicePage
+                );
+              },
+            ),
+            ListTile(
+              title: const Text('Log Out'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProfileDetails(
                     userData: widget.userData,
                   )), // Navigate to AddDevicePage
                 );

@@ -1,18 +1,99 @@
 import 'package:flutter/material.dart';
+import 'package:image_store/MainScreen/CameraScreen.dart';
 import 'package:image_store/User_Authentication/RegistrationForm.dart';
 import 'package:postgres/postgres.dart';
 import 'package:image_store/ChooseDeviceCamera/DevicePage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(''),
-      ),
-      body: const LoginForm(), // Display the login form
+    return FutureBuilder<bool>(
+      future: _isLoggedIn(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        } else {
+          final bool isLoggedIn = snapshot.data ?? false;
+          if (isLoggedIn) {
+            // If the user is logged in, navigate to the main screen
+            return FutureBuilder(
+              future: _retrieveUserData(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                } else {
+                  final prefs = snapshot.data as Map<String, dynamic>?;
+                  final deviceName = prefs?['deviceName'] ?? '';
+                  final username = prefs?['username'] ?? '';
+                  final userData = prefs?['userData'] ?? [];
+                  final selectedDevice = prefs?['selectedDevice'] ?? '';
+                  final inventoryType = prefs?['inventoryType'] ?? '';
+                  final brandName = prefs?['brandName'] ?? '';
+
+                  return CameraScreen(
+                    deviceName: deviceName,
+                    username: username,
+                    userData: userData,
+                    selectedDevice: selectedDevice,
+                    inventoryType: inventoryType,
+                    brandName: brandName,
+                  );
+                }
+              },
+            );
+          } else {
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text(''),
+              ),
+              body: const LoginForm(), // Display the login form
+            );
+          }
+        }
+      },
     );
+  }
+
+  Future<bool> _isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('isLoggedIn') ?? false;
+  }
+
+  Future<Map<String, dynamic>> _retrieveUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final deviceName = prefs.getString('deviceName');
+    final brandName = prefs.getString('brandName');
+    final username = prefs.getString('username');
+    final inventoryType = prefs.getString('inventoryType');
+    final selectedDevice = prefs.getString('selectedDevice');
+    final userDataJson = prefs.getString('userData');
+
+    List<List<dynamic>> userData = [];
+    if (userDataJson != null) {
+      userData = userDataJson
+          .split('|')
+          .map((list) => list.split(',').toList())
+          .toList();
+    }
+
+    return {
+      'deviceName': deviceName,
+      'brandName': brandName,
+      'username': username,
+      'inventoryType': inventoryType,
+      'selectedDevice': selectedDevice,
+      'userData': userData,
+    };
   }
 }
 class LoginForm extends StatefulWidget {
@@ -50,7 +131,7 @@ class _LoginFormState extends State<LoginForm> {
         if (isValid) {
           // Fetch user data after successful login
           userData = await fetchUserData(_usernameController.text.toString());
-
+          _storeDetailsInPrefs();
           // Navigate to the page where the user can choose a Device
           Navigator.pushReplacement(
             // ignore: use_build_context_synchronously
@@ -79,6 +160,10 @@ class _LoginFormState extends State<LoginForm> {
         });
       }
     }
+  }
+  Future<void> _storeDetailsInPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isLoggedIn', true);
   }
 
   @override
