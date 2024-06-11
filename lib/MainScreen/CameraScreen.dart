@@ -65,6 +65,7 @@ class _CameraScreenState extends State<CameraScreen> {
   int _timerSeconds = 10;
   List<String> _productNames = [];
 
+  bool isexpiry =false;
   @override
   void initState() {
     super.initState();
@@ -143,6 +144,7 @@ class _CameraScreenState extends State<CameraScreen> {
     final Directory extDir = await getApplicationDocumentsDirectory();
     final String dirPath = '${extDir.path}/Pictures/flutter_app';
     await Directory(dirPath).create(recursive: true);
+    isexpiry=false;
 
     if (_controller!.value.isTakingPicture) {
       return null;
@@ -333,7 +335,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
       // Check if both product name and expiry date are not null
       if (productName.isNotEmpty && expiryDate.isNotEmpty &&
-          expiryDate != 'Expiry date not found') {
+          expiryDate != 'Expiry date not found' && expiryDate!='Expired product') {
         // Store the data in the "inventory" table
         await _insertDataIntoInventory(
             productName, expiryDate, groupid, brandname);
@@ -690,7 +692,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
     if (firstDate != null && secondDate == null) {
       if (firstDate.isBefore(currentDate)) {
-        return 'Expired product'; // Expiry date is before the current date
+        return 'Expired product';
       } else {
         return firstDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
       }
@@ -698,11 +700,10 @@ class _CameraScreenState extends State<CameraScreen> {
         secondDate.isAtSameMomentAs(currentDate))) {
       return secondDate.toString().split(' ').first; // Return only the date part in yyyy-MM-dd format
     } else {
+      isexpiry=true;
       return 'Expiry date not found';
     }
   }
-
-
 
   List<String> _filteredImages() {
     if (_searchQuery.isEmpty) {
@@ -764,10 +765,8 @@ class _CameraScreenState extends State<CameraScreen> {
         }
       }
     }
-
-    // Return 'Product Not Found' if no match is found
     print('Product Not Found');
-    return 'Product Not Found';
+    return '';
   }
 
   void _storeDetailsInPrefs(String deviceName, String brandName, String username, List<List<dynamic>> userData,String inventoryType,String selectDevice) async {
@@ -841,180 +840,192 @@ class _CameraScreenState extends State<CameraScreen> {
           ],
         ),
       ),
-      body: Expanded(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Search by product name',
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                        _searchProduct(value);
-                      },
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Search by product name',
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.timer),
-                    onPressed: () {
-                      _timerController.text = _timerSeconds.toString();
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('Set Timer (seconds)'),
-                            content: TextField(
-                              controller: _timerController,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                labelText: 'Timer duration',
-                              ),
-                            ),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () {
-                                  final userInput = _timerController.text;
-                                  setState(() {
-                                    _timerSeconds = userInput.isNotEmpty
-                                        ? int.parse(userInput)
-                                        : 10;
-                                      _captureTimer?.cancel(); // Cancel the existing timer
-                                    _startTimer();
-                                  });
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text('Set'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () async {
-                      final products = await _searchProduct(_searchQuery);
+                    onChanged: (value) {
                       setState(() {
-                        _filteredProducts = products;
+                        _searchQuery = value;
                       });
+                      _searchProduct(value);
                     },
                   ),
-                ],
-              ),
-             SizedBox(height: 20),
-              if (_filteredProducts.isNotEmpty)
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: _filteredProducts.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return GestureDetector(
-                      onTap: () => _onProductTap(_filteredProducts[index]),
-                      child: ListTile(
-                        title: Text(_filteredProducts[index]),
-                      ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.timer),
+                  onPressed: () {
+                    _timerController.text = _timerSeconds.toString();
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text('Set Timer (seconds)'),
+                          content: TextField(
+                            controller: _timerController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Timer duration',
+                            ),
+                          ),
+                          actions: <Widget>[
+                            TextButton(
+                              onPressed: () {
+                                final userInput = _timerController.text;
+                                setState(() {
+                                  _timerSeconds = userInput.isNotEmpty
+                                      ? int.parse(userInput)
+                                      : 10;
+                                    _captureTimer?.cancel(); // Cancel the existing timer
+                                  _startTimer();
+                                });
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text('Set'),
+                            ),
+                          ],
+                        );
+                      },
                     );
                   },
                 ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: SizedBox(
-                  height: 500, // Adjust the height as needed
-                  child: CameraPreview(_controller!),
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () async {
+                    final products = await _searchProduct(_searchQuery);
+                    setState(() {
+                      _filteredProducts = products;
+                    });
+                  },
+                ),
+              ],
+            ),
+           const SizedBox(height: 20),
+            if (_filteredProducts.isNotEmpty)
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _filteredProducts.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return GestureDetector(
+                    onTap: () => _onProductTap(_filteredProducts[index]),
+                    child: ListTile(
+                      title: Text(_filteredProducts[index]),
+                    ),
+                  );
+                },
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: SizedBox(
+                height: 500, // Adjust the height as needed
+                child: CameraPreview(_controller!),
+              ),
+            ),
+            if (_latestImagePath != null)
+              Container(
+                padding: const EdgeInsets.all(16.0),
+              ),
+            if (_filteredImages().isNotEmpty)
+              SizedBox(
+                height: 100.0,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _filteredImages().length,
+                  itemBuilder: (context, index) {
+                    final imagePath = _filteredImages()[index];
+                    return Container(
+                      margin: const EdgeInsets.all(4.0),
+                      child: Image.file(File(imagePath), height: 80.0),
+                    );
+                  },
                 ),
               ),
-              if (_latestImagePath != null)
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                ),
-              if (_filteredImages().isNotEmpty)
-                SizedBox(
-                  height: 100.0,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _filteredImages().length,
-                    itemBuilder: (context, index) {
-                      final imagePath = _filteredImages()[index];
-                      return Container(
-                        margin: const EdgeInsets.all(4.0),
-                        child: Image.file(File(imagePath), height: 80.0),
-                      );
-                    },
-                  ),
-                ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                   Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: ElevatedButton(
-                        onPressed: _takePictureAndUpload,
-                        child: const Text('Take Photo'),
-                      ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                 Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: ElevatedButton(
+                      onPressed: _takePictureAndUpload,
+                      child: const Text('Take Photo'),
                     ),
-                  SizedBox(width: 30),
+                  ),
+                const SizedBox(width: 30),
+                if (isexpiry)
                   Padding(
                     padding: const EdgeInsets.all(5.0),
                     child: ElevatedButton(
-                      onPressed: _uploadData,
-                      child: const Text('Upload Data'),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(5.0),
-                    child: ElevatedButton(
-                      onPressed: _getDetails,
-                      child: const Text('All Details'),
-                    ),
-                  ),
-                  SizedBox(width: 30),
-                  Padding(
-                    padding: const EdgeInsets.all(5.0),
-                    child: ElevatedButton(
-                      onPressed: (){
-                        _showAddProductNameDialog(context);
+                      onPressed: () async {
+                        final DateTime? datetime = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(3000),
+                        );
+                        if (datetime != null) {
+                          setState(() {
+                            _expirydate = datetime.toIso8601String().split('T').first;
+                            isexpiry = false; // Hide the button after setting the date
+                          });
+                        }
                       },
-                      child: const Text('Add Products'),
+                      child: const Text('Set Date'),
                     ),
                   ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(5.0),
-                    child: Text('Detected Text: $_detectedText'),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: ElevatedButton(
+                    onPressed: _getDetails,
+                    child: const Text('All Details'),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(5.0),
-                    child: Text('Ingredients: $_ingrediants'),
+                ),
+                const SizedBox(width: 30),
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: ElevatedButton(
+                    onPressed: (){
+                      _showAddProductNameDialog(context);
+                    },
+                    child: const Text('Add Products'),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(5.0),
-                    child: Text('Expiry Date: $_expirydate'),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(5.0),
-                    child: Text('Product Name: $product_name'),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: Text('Detected Text: $_detectedText'),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: Text('Ingredients: $_ingrediants'),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: Text('Expiry Date: $_expirydate'),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: Text('Product Name: $product_name'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -1026,19 +1037,19 @@ class _CameraScreenState extends State<CameraScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Add Product Name'),
+          title: const Text('Add Product Name'),
           content: TextField(
             onChanged: (value) {
               newProductName = value;
             },
-            decoration: InputDecoration(hintText: 'Enter Product Name'),
+            decoration: const InputDecoration(hintText: 'Enter Product Name'),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -1046,7 +1057,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 print(newProductName);
                 Navigator.of(context).pop();
               },
-              child: Text('Add'),
+              child: const Text('Add'),
             ),
           ],
         );
