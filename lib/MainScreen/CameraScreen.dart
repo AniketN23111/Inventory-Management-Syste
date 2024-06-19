@@ -176,7 +176,7 @@ class _CameraScreenState extends State<CameraScreen> {
           'location': _currentPosition?.toString() ?? '',
         };
         // Upload the file to the bucket
-        final response = await api.save(fileName, _imgebytes, metadata);
+        //final response = await api.save(fileName, _imgebytes, metadata);
         print(response.downloadLink);
         print(metadata.toString());
 
